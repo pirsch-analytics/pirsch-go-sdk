@@ -25,7 +25,7 @@ type Client struct {
 	hostname     string
 	accessToken  string
 	expiresAt    time.Time
-	m            sync.Mutex
+	m            sync.RWMutex
 }
 
 // ClientConfig is used to configure the Client.
@@ -152,5 +152,7 @@ func (client *Client) performPost(url string, body interface{}) error {
 }
 
 func (client *Client) setRequestHeaders(req *http.Request) {
+	client.m.RLock()
+	defer client.m.RUnlock()
 	req.Header.Set("Authorization", "Bearer "+client.accessToken)
 }

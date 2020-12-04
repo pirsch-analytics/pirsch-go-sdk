@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/pirsch-analytics/go-sdk"
+	"github.com/pirsch-analytics/pirsch-go-sdk"
 	"log"
 	"net/http"
 )
