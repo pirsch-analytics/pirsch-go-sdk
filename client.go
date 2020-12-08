@@ -17,6 +17,12 @@ const (
 	hitEndpoint            = "/api/v1/hit"
 )
 
+var referrerQueryParams = []string{
+	"ref",
+	"referer",
+	"referrer",
+}
+
 // Client is a client used to access the Pirsch API.
 type Client struct {
 	baseURL      string
@@ -65,8 +71,24 @@ func (client *Client) Hit(r *http.Request) error {
 		XRealIP:        r.Header.Get("X-Real-IP"),
 		UserAgent:      r.Header.Get("User-Agent"),
 		AcceptLanguage: r.Header.Get("Accept-Language"),
-		Referrer:       r.Header.Get("Referrer"),
+		Referrer:       client.getReferrerFromHeaderOrQuery(r),
 	})
+}
+
+func (client *Client) getReferrerFromHeaderOrQuery(r *http.Request) string {
+	referrer := r.Header.Get("Referer")
+
+	if referrer == "" {
+		for _, param := range referrerQueryParams {
+			referrer = r.URL.Query().Get(param)
+
+			if referrer != "" {
+				return referrer
+			}
+		}
+	}
+
+	return referrer
 }
 
 func (client *Client) refreshToken() error {
