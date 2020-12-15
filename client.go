@@ -165,6 +165,15 @@ func (client *Client) performPost(url string, body interface{}) error {
 		}
 	}
 
+	// TODO this is a hack to get around our unstable Traefik configuration (?) at the moment
+	if resp.StatusCode == http.StatusBadGateway {
+		resp, err = c.Do(req)
+
+		if err != nil {
+			return err
+		}
+	}
+
 	if resp.StatusCode != http.StatusOK {
 		body, _ := ioutil.ReadAll(resp.Body)
 		return errors.New(fmt.Sprintf("%s: received status code %d on request: %s", url, resp.StatusCode, string(body)))
