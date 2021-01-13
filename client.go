@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -26,6 +27,7 @@ var referrerQueryParams = []string{
 // Client is a client used to access the Pirsch API.
 type Client struct {
 	baseURL      string
+	logger       *log.Logger
 	clientID     string
 	clientSecret string
 	hostname     string
@@ -39,20 +41,28 @@ type ClientConfig struct {
 	// BaseURL is optional and can be used to configure a different host for the API.
 	// This is usually left empty in production environments.
 	BaseURL string
+
+	// Logger is an optional logger for debugging.
+	Logger *log.Logger
 }
 
 // NewClient creates a new client for given client ID, client secret, hostname, and optional configuration.
 // A new client ID and secret can be generated on the Pirsch dashboard.
 // The hostname must match the hostname you configured on the Pirsch dashboard (e.g. example.com).
 func NewClient(clientID, clientSecret, hostname string, config *ClientConfig) *Client {
-	baseURL := defaultBaseURL
+	if config == nil {
+		config = &ClientConfig{
+			BaseURL: defaultBaseURL,
+		}
+	}
 
-	if config != nil && config.BaseURL != "" {
-		baseURL = config.BaseURL
+	if config.BaseURL == "" {
+		config.BaseURL = defaultBaseURL
 	}
 
 	return &Client{
-		baseURL:      baseURL,
+		baseURL:      config.BaseURL,
+		logger:       config.Logger,
 		clientID:     clientID,
 		clientSecret: clientSecret,
 		hostname:     hostname,
@@ -72,7 +82,7 @@ func (client *Client) Hit(r *http.Request) error {
 		UserAgent:      r.Header.Get("User-Agent"),
 		AcceptLanguage: r.Header.Get("Accept-Language"),
 		Referrer:       client.getReferrerFromHeaderOrQuery(r),
-	})
+	}, true)
 }
 
 func (client *Client) getReferrerFromHeaderOrQuery(r *http.Request) string {
@@ -130,7 +140,7 @@ func (client *Client) refreshToken() error {
 	return nil
 }
 
-func (client *Client) performPost(url string, body interface{}) error {
+func (client *Client) performPost(url string, body interface{}, retry bool) error {
 	reqBody, err := json.Marshal(body)
 
 	if err != nil {
@@ -152,31 +162,23 @@ func (client *Client) performPost(url string, body interface{}) error {
 	}
 
 	// refresh access token and retry on 401
-	if resp.StatusCode == http.StatusUnauthorized {
+	if retry && resp.StatusCode == http.StatusUnauthorized {
 		if err := client.refreshToken(); err != nil {
+			if client.logger != nil {
+				client.logger.Printf("error refreshing token: %s", err)
+			}
+
 			return err
 		}
 
-		client.setRequestHeaders(req)
-		resp, err = c.Do(req)
-
-		if err != nil {
-			return err
-		}
-	}
-
-	// TODO this is a hack to get around our unstable Traefik configuration (?) at the moment
-	if resp.StatusCode == http.StatusBadGateway {
-		resp, err = c.Do(req)
-
-		if err != nil {
+		if err := client.performPost(url, body, false); err != nil {
 			return err
 		}
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := ioutil.ReadAll(resp.Body)
-		return errors.New(fmt.Sprintf("%s: received status code %d on request: %s", url, resp.StatusCode, string(body)))
+		return client.requestError(url, resp.StatusCode, string(body))
 	}
 
 	return nil
@@ -186,4 +188,12 @@ func (client *Client) setRequestHeaders(req *http.Request) {
 	client.m.RLock()
 	defer client.m.RUnlock()
 	req.Header.Set("Authorization", "Bearer "+client.accessToken)
+}
+
+func (client *Client) requestError(url string, statusCode int, body string) error {
+	if body != "" {
+		return errors.New(fmt.Sprintf("%s: received status code %d on request: %s", url, statusCode, body))
+	}
+
+	return errors.New(fmt.Sprintf("%s: received status code %d on request", url, statusCode))
 }

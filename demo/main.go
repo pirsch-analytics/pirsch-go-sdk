@@ -4,14 +4,15 @@ import (
 	"github.com/pirsch-analytics/pirsch-go-sdk"
 	"log"
 	"net/http"
+	"os"
 )
 
 const (
 	// Client ID, secret, and hostname for testing.
 	// Replace them with your own.
-	clientID     = "i9OulOrSI0b5EBNQbb8vg5zfEg2zhQ5q"
-	clientSecret = "FgwcclcvpTK75oqmbc6UxmJTXX3iCK8JcqPvz7ozzJzouc39KLEeriXQy45Myq92"
-	hostname     = "first.page"
+	clientID     = ""
+	clientSecret = ""
+	hostname     = "example.com"
 )
 
 func main() {
@@ -19,7 +20,7 @@ func main() {
 
 	// Create a client for Pirsch.
 	client := pirsch.NewClient(clientID, clientSecret, hostname, &pirsch.ClientConfig{
-		BaseURL: "http://localhost.com:9999",
+		Logger: log.New(os.Stdout, "", 0),
 	})
 
 	// Add a handler to serve a page.
@@ -30,6 +31,8 @@ func main() {
 			if err := client.Hit(r); err != nil {
 				log.Println(err)
 			}
+
+			log.Println("Hit!")
 		}
 
 		w.Write([]byte("<h1>Hello from Pirsch!</h1>"))
