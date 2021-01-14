@@ -171,9 +171,7 @@ func (client *Client) performPost(url string, body interface{}, retry bool) erro
 			return err
 		}
 
-		if err := client.performPost(url, body, false); err != nil {
-			return err
-		}
+		return client.performPost(url, body, false)
 	}
 
 	if resp.StatusCode != http.StatusOK {
