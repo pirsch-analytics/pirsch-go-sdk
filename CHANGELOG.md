@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.0
+
+* removed deprecated package io/ioutil, the minimum Go version is now 1.16
+
 ## 0.4
 
 * fixed 502 error and refreshing token
