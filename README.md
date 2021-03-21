@@ -7,7 +7,7 @@ This is the official Golang client SDK for Pirsch. For details, please check out
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md);
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
