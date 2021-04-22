@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1
+
+* added missing DNT (do not track) header
+
 ## 1.1.0
 
 * removed deprecated package io/ioutil, the minimum Go version is now 1.16

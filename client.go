@@ -71,6 +71,10 @@ func NewClient(clientID, clientSecret, hostname string, config *ClientConfig) *C
 
 // Hit sends a page hit to Pirsch for given http.Request.
 func (client *Client) Hit(r *http.Request) error {
+	if r.Header.Get("DNT") == "1" {
+		return nil
+	}
+
 	return client.performPost(client.baseURL+hitEndpoint, &Hit{
 		Hostname:       client.hostname,
 		URL:            r.URL.String(),
