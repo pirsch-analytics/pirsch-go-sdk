@@ -106,6 +106,8 @@ func (client *Client) getReferrerFromHeaderOrQuery(r *http.Request) string {
 }
 
 func (client *Client) refreshToken() error {
+	client.m.Lock()
+	defer client.m.Unlock()
 	body := struct {
 		ClientId     string `json:"client_id"`
 		ClientSecret string `json:"client_secret"`
@@ -137,8 +139,6 @@ func (client *Client) refreshToken() error {
 		return err
 	}
 
-	client.m.Lock()
-	defer client.m.Unlock()
 	client.accessToken = respJson.AccessToken
 	client.expiresAt = respJson.ExpiresAt
 	return nil

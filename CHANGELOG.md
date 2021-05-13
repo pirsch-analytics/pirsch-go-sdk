@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.2
+
+* fixed refreshing token more often than needed
+
 ## 1.1.1
 
 * added missing DNT (do not track) header
