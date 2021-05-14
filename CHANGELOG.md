@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0
+
+* added screen width and height to `Hit`
+* improved refresh mechanism with wait time and ignoring obsolete requests
+
 ## 1.1.3
 
 * fixed refreshing token on first request

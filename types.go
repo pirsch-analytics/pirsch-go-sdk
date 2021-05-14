@@ -12,4 +12,6 @@ type Hit struct {
 	UserAgent      string `json:"user_agent"`
 	AcceptLanguage string `json:"accept_language"`
 	Referrer       string `json:"referrer"`
+	ScreenWidth    int    `json:"screen_width"`
+	ScreenHeight   int    `json:"screen_height"`
 }

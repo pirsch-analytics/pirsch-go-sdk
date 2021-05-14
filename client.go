@@ -16,6 +16,7 @@ const (
 	defaultBaseURL         = "https://api.pirsch.io"
 	authenticationEndpoint = "/api/v1/token"
 	hitEndpoint            = "/api/v1/hit"
+	requestRetries         = 5
 )
 
 var referrerQueryParams = []string{
@@ -46,6 +47,12 @@ type ClientConfig struct {
 	Logger *log.Logger
 }
 
+// HitOptions optional parameters to send with the hit request.
+type HitOptions struct {
+	ScreenWidth  int
+	ScreenHeight int
+}
+
 // NewClient creates a new client for given client ID, client secret, hostname, and optional configuration.
 // A new client ID and secret can be generated on the Pirsch dashboard.
 // The hostname must match the hostname you configured on the Pirsch dashboard (e.g. example.com).
@@ -71,8 +78,17 @@ func NewClient(clientID, clientSecret, hostname string, config *ClientConfig) *C
 
 // Hit sends a page hit to Pirsch for given http.Request.
 func (client *Client) Hit(r *http.Request) error {
+	return client.HitWithOptions(r, nil)
+}
+
+// HitWithOptions sends a page hit to Pirsch for given http.Request and options.
+func (client *Client) HitWithOptions(r *http.Request, options *HitOptions) error {
 	if r.Header.Get("DNT") == "1" {
 		return nil
+	}
+
+	if options == nil {
+		options = new(HitOptions)
 	}
 
 	return client.performPost(client.baseURL+hitEndpoint, &Hit{
@@ -86,7 +102,9 @@ func (client *Client) Hit(r *http.Request) error {
 		UserAgent:      r.Header.Get("User-Agent"),
 		AcceptLanguage: r.Header.Get("Accept-Language"),
 		Referrer:       client.getReferrerFromHeaderOrQuery(r),
-	}, true)
+		ScreenWidth:    options.ScreenWidth,
+		ScreenHeight:   options.ScreenHeight,
+	}, requestRetries)
 }
 
 func (client *Client) getReferrerFromHeaderOrQuery(r *http.Request) string {
@@ -108,6 +126,12 @@ func (client *Client) getReferrerFromHeaderOrQuery(r *http.Request) string {
 func (client *Client) refreshToken() error {
 	client.m.Lock()
 	defer client.m.Unlock()
+
+	// check token has expired or is about to expire soon
+	if client.expiresAt.After(time.Now().UTC().Add(-time.Minute)) {
+		return nil
+	}
+
 	body := struct {
 		ClientId     string `json:"client_id"`
 		ClientSecret string `json:"client_secret"`
@@ -144,7 +168,7 @@ func (client *Client) refreshToken() error {
 	return nil
 }
 
-func (client *Client) performPost(url string, body interface{}, retry bool) error {
+func (client *Client) performPost(url string, body interface{}, retry int) error {
 	reqBody, err := json.Marshal(body)
 
 	if err != nil {
@@ -168,7 +192,9 @@ func (client *Client) performPost(url string, body interface{}, retry bool) erro
 	}
 
 	// refresh access token and retry on 401
-	if retry && resp.StatusCode == http.StatusUnauthorized {
+	if retry > 0 && resp.StatusCode == http.StatusUnauthorized {
+		time.Sleep(time.Millisecond * time.Duration((requestRetries-retry)*100+50))
+
 		if err := client.refreshToken(); err != nil {
 			if client.logger != nil {
 				client.logger.Printf("error refreshing token: %s", err)
@@ -177,7 +203,7 @@ func (client *Client) performPost(url string, body interface{}, retry bool) erro
 			return err
 		}
 
-		return client.performPost(url, body, false)
+		return client.performPost(url, body, retry-1)
 	}
 
 	if resp.StatusCode != http.StatusOK {
