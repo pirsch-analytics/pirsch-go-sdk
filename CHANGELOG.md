@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.3
+
+* fixed refreshing token on first request
+
 ## 1.1.2
 
 * fixed refreshing token more often than needed

@@ -12,7 +12,7 @@ const (
 	// Replace them with your own.
 	clientID     = ""
 	clientSecret = ""
-	hostname     = "example.com"
+	hostname     = "pirsch.io"
 )
 
 func main() {

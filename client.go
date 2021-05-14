@@ -157,7 +157,9 @@ func (client *Client) performPost(url string, body interface{}, retry bool) erro
 		return err
 	}
 
-	client.setRequestHeaders(req)
+	client.m.RLock()
+	req.Header.Set("Authorization", "Bearer "+client.accessToken)
+	client.m.RUnlock()
 	c := http.Client{}
 	resp, err := c.Do(req)
 
@@ -184,12 +186,6 @@ func (client *Client) performPost(url string, body interface{}, retry bool) erro
 	}
 
 	return nil
-}
-
-func (client *Client) setRequestHeaders(req *http.Request) {
-	client.m.RLock()
-	defer client.m.RUnlock()
-	req.Header.Set("Authorization", "Bearer "+client.accessToken)
 }
 
 func (client *Client) requestError(url string, statusCode int, body string) error {
