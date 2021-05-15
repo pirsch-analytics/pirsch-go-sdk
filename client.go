@@ -23,6 +23,8 @@ var referrerQueryParams = []string{
 	"ref",
 	"referer",
 	"referrer",
+	"source",
+	"utm_source",
 }
 
 // Client is a client used to access the Pirsch API.

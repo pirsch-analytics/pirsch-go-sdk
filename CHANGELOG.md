@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0
+
+* added `source` and `utm_source` to referrers
+
 ## 1.2.0
 
 * added screen width and height to `Hit`
