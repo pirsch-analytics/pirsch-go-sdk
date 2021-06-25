@@ -13,11 +13,32 @@ import (
 )
 
 const (
-	defaultBaseURL         = "https://api.pirsch.io"
-	authenticationEndpoint = "/api/v1/token"
-	hitEndpoint            = "/api/v1/hit"
-	domainEndpoint         = "/api/v1/domain"
-	requestRetries         = 5
+	defaultBaseURL          = "https://api.pirsch.io"
+	authenticationEndpoint  = "/api/v1/token"
+	hitEndpoint             = "/api/v1/hit"
+	domainEndpoint          = "/api/v1/domain"
+	sessionDurationEndpoint = "/api/v1/statistics/duration/session"
+	timeOnPageEndpoint      = "/api/v1/statistics/duration/page"
+	utmSourceEndpoint       = "/api/v1/statistics/utm/source"
+	utmMediumEndpoint       = "/api/v1/statistics/utm/medium"
+	utmCampaignEndpoint     = "/api/v1/statistics/utm/campaign"
+	utmContentEndpoint      = "/api/v1/statistics/utm/content"
+	utmTermEndpoint         = "/api/v1/statistics/utm/term"
+	visitorsEndpoint        = "/api/v1/statistics/visitor"
+	pagesEndpoint           = "/api/v1/statistics/page"
+	conversionGoalsEndpoint = "/api/v1/statistics/goals"
+	growthRateEndpoint      = "/api/v1/statistics/growth"
+	activeVisitorsEndpoint  = "/api/v1/statistics/active"
+	timeOfDayEndpoint       = "/api/v1/statistics/hours"
+	languageEndpoint        = "/api/v1/statistics/language"
+	referrerEndpoint        = "/api/v1/statistics/referrer"
+	osEndpoint              = "/api/v1/statistics/os"
+	browserEndpoint         = "/api/v1/statistics/browser"
+	countryEndpoint         = "/api/v1/statistics/country"
+	platformEndpoint        = "/api/v1/statistics/platform"
+	screenEndpoint          = "/api/v1/statistics/screen"
+	keywordsEndpoint        = "/api/v1/statistics/keywords"
+	requestRetries          = 5
 )
 
 var referrerQueryParams = []string{
@@ -123,6 +144,237 @@ func (client *Client) Domain() (*Domain, error) {
 	}
 
 	return &domains[0], nil
+}
+
+// SessionDuration returns the session duration grouped by day.
+func (client *Client) SessionDuration(filter *Filter) ([]TimeSpentStats, error) {
+	stats := make([]TimeSpentStats, 0)
+
+	if err := client.performGet(client.baseURL+sessionDurationEndpoint, filter, requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// TimeOnPage returns the time spent on pages.
+func (client *Client) TimeOnPage(filter *Filter) ([]TimeSpentStats, error) {
+	stats := make([]TimeSpentStats, 0)
+
+	if err := client.performGet(client.baseURL+timeOnPageEndpoint, filter, requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// UTMSource returns the utm sources.
+func (client *Client) UTMSource(filter *Filter) ([]UTMSourceStats, error) {
+	stats := make([]UTMSourceStats, 0)
+
+	if err := client.performGet(client.baseURL+utmSourceEndpoint, filter, requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// UTMMedium returns the utm medium.
+func (client *Client) UTMMedium(filter *Filter) ([]UTMMediumStats, error) {
+	stats := make([]UTMMediumStats, 0)
+
+	if err := client.performGet(client.baseURL+utmMediumEndpoint, filter, requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// UTMCampaign returnst he utm campaigns.
+func (client *Client) UTMCampaign(filter *Filter) ([]UTMCampaignStats, error) {
+	stats := make([]UTMCampaignStats, 0)
+
+	if err := client.performGet(client.baseURL+utmCampaignEndpoint, filter, requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// UTMContent returns the utm content.
+func (client *Client) UTMContent(filter *Filter) ([]UTMContentStats, error) {
+	stats := make([]UTMContentStats, 0)
+
+	if err := client.performGet(client.baseURL+utmContentEndpoint, filter, requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// UTMTerm returns the utm term.
+func (client *Client) UTMTerm(filter *Filter) ([]UTMTermStats, error) {
+	stats := make([]UTMTermStats, 0)
+
+	if err := client.performGet(client.baseURL+utmTermEndpoint, filter, requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// Visitors returns the visitor statistics grouped by day.
+func (client *Client) Visitors(filter *Filter) ([]VisitorStats, error) {
+	stats := make([]VisitorStats, 0)
+
+	if err := client.performGet(client.baseURL+visitorsEndpoint, filter, requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// Pages returns the page statistics grouped by page.
+func (client *Client) Pages(filter *Filter) ([]PageStats, error) {
+	stats := make([]PageStats, 0)
+
+	if err := client.performGet(client.baseURL+pagesEndpoint, filter, requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// ConversionGoals returns all conversion goals.
+func (client *Client) ConversionGoals(filter *Filter) ([]ConversionGoal, error) {
+	stats := make([]ConversionGoal, 0)
+
+	if err := client.performGet(client.baseURL+conversionGoalsEndpoint, filter, requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// Growth returns the growth rates for visitors, bounces, ...
+func (client *Client) Growth(filter *Filter) (*Growth, error) {
+	growth := new(Growth)
+
+	if err := client.performGet(client.baseURL+growthRateEndpoint, filter, requestRetries, growth); err != nil {
+		return nil, err
+	}
+
+	return growth, nil
+}
+
+// ActiveVisitors returns the active visitors and what pages they're on.
+func (client *Client) ActiveVisitors(filter *Filter) (*ActiveVisitorsData, error) {
+	active := new(ActiveVisitorsData)
+
+	if err := client.performGet(client.baseURL+activeVisitorsEndpoint, filter, requestRetries, active); err != nil {
+		return nil, err
+	}
+
+	return active, nil
+}
+
+// TimeOfDay returns the number of unique visitors grouped by time of day.
+func (client *Client) TimeOfDay(filter *Filter) ([]VisitorHourStats, error) {
+	stats := make([]VisitorHourStats, 0)
+
+	if err := client.performGet(client.baseURL+timeOfDayEndpoint, filter, requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// Languages returns language statistics.
+func (client *Client) Languages(filter *Filter) ([]LanguageStats, error) {
+	stats := make([]LanguageStats, 0)
+
+	if err := client.performGet(client.baseURL+languageEndpoint, filter, requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// Referrer returns referrer statistics.
+func (client *Client) Referrer(filter *Filter) ([]ReferrerStats, error) {
+	stats := make([]ReferrerStats, 0)
+
+	if err := client.performGet(client.baseURL+referrerEndpoint, filter, requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// OS returns operating system statistics.
+func (client *Client) OS(filter *Filter) ([]OSStats, error) {
+	stats := make([]OSStats, 0)
+
+	if err := client.performGet(client.baseURL+osEndpoint, filter, requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// Browser returns browser statistics.
+func (client *Client) Browser(filter *Filter) ([]BrowserStats, error) {
+	stats := make([]BrowserStats, 0)
+
+	if err := client.performGet(client.baseURL+browserEndpoint, filter, requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// Country returns country statistics.
+func (client *Client) Country(filter *Filter) ([]CountryStats, error) {
+	stats := make([]CountryStats, 0)
+
+	if err := client.performGet(client.baseURL+countryEndpoint, filter, requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// Platform returns the platforms used by visitors.
+func (client *Client) Platform(filter *Filter) (*PlatformStats, error) {
+	platforms := new(PlatformStats)
+
+	if err := client.performGet(client.baseURL+platformEndpoint, filter, requestRetries, platforms); err != nil {
+		return nil, err
+	}
+
+	return platforms, nil
+}
+
+// Screen returns the screen classes used by visitors.
+func (client *Client) Screen(filter *Filter) ([]ScreenClassStats, error) {
+	stats := make([]ScreenClassStats, 0)
+
+	if err := client.performGet(client.baseURL+screenEndpoint, filter, requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// Keywords returns the Google keywords, rank, and CTR.
+func (client *Client) Keywords(filter *Filter) ([]Keyword, error) {
+	stats := make([]Keyword, 0)
+
+	if err := client.performGet(client.baseURL+keywordsEndpoint, filter, requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
 }
 
 func (client *Client) getReferrerFromHeaderOrQuery(r *http.Request) string {
