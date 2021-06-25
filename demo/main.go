@@ -8,10 +8,10 @@ import (
 )
 
 const (
-	// Client ID, secret, and hostname for testing.
+	// Client ID, secret, and hostname.
 	// Replace them with your own.
-	clientID     = ""
-	clientSecret = ""
+	clientID     = "VPvOChTcKhn8gz0Xni0TaKY4C0PkuyKP"
+	clientSecret = "MyYPXtEHKoGVZHNFuVDyBEMYsKZWvKrsPsSyHYqC4oRS2gyv62a0WRiEei4AryAE"
 	hostname     = "pirsch.io"
 )
 
@@ -20,7 +20,8 @@ func main() {
 
 	// Create a client for Pirsch.
 	client := pirsch.NewClient(clientID, clientSecret, hostname, &pirsch.ClientConfig{
-		Logger: log.New(os.Stdout, "", 0),
+		Logger:  log.New(os.Stdout, "", 0),
+		BaseURL: "http://localhost.com:9999",
 	})
 
 	// Add a handler to serve a page.
@@ -37,5 +38,19 @@ func main() {
 
 		w.Write([]byte("<h1>Hello from Pirsch!</h1>"))
 	})
+
+	// Add a handler to read statistics.
+	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
+		// Read the domain for this client.
+		domain, err := client.Domain()
+
+		if err == nil {
+			w.Write([]byte("<p>Hostname: " + domain.Hostname + "</p>"))
+		} else {
+			w.Write([]byte(err.Error()))
+			return
+		}
+	})
+
 	http.ListenAndServe(":1414", nil)
 }

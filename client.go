@@ -16,6 +16,7 @@ const (
 	defaultBaseURL         = "https://api.pirsch.io"
 	authenticationEndpoint = "/api/v1/token"
 	hitEndpoint            = "/api/v1/hit"
+	domainEndpoint         = "/api/v1/domain"
 	requestRetries         = 5
 )
 
@@ -107,6 +108,21 @@ func (client *Client) HitWithOptions(r *http.Request, options *HitOptions) error
 		ScreenWidth:    options.ScreenWidth,
 		ScreenHeight:   options.ScreenHeight,
 	}, requestRetries)
+}
+
+// Domain returns the domain for this client.
+func (client *Client) Domain() (*Domain, error) {
+	domains := make([]Domain, 0, 1)
+
+	if err := client.performGet(client.baseURL+domainEndpoint, nil, requestRetries, &domains); err != nil {
+		return nil, err
+	}
+
+	if len(domains) != 1 {
+		return nil, errors.New("domain not found")
+	}
+
+	return &domains[0], nil
 }
 
 func (client *Client) getReferrerFromHeaderOrQuery(r *http.Request) string {
@@ -211,6 +227,73 @@ func (client *Client) performPost(url string, body interface{}, retry int) error
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return client.requestError(url, resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+func (client *Client) performGet(url string, body interface{}, retry int, result interface{}) error {
+	if retry > 0 && client.accessToken == "" {
+		time.Sleep(time.Millisecond * time.Duration((requestRetries-retry)*100+50))
+
+		if err := client.refreshToken(); err != nil {
+			if client.logger != nil {
+				client.logger.Printf("error refreshing token: %s", err)
+			}
+
+			return err
+		}
+
+		return client.performGet(url, body, retry-1, result)
+	}
+
+	reqBody, err := json.Marshal(body)
+
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("GET", url, bytes.NewReader(reqBody))
+
+	if err != nil {
+		return err
+	}
+
+	client.m.RLock()
+	req.Header.Set("Authorization", "Bearer "+client.accessToken)
+	req.Header.Set("Content-Type", "application/json")
+	client.m.RUnlock()
+	c := http.Client{}
+	resp, err := c.Do(req)
+
+	if err != nil {
+		return err
+	}
+
+	// refresh access token and retry on 401
+	if retry > 0 && resp.StatusCode == http.StatusUnauthorized {
+		time.Sleep(time.Millisecond * time.Duration((requestRetries-retry)*100+50))
+
+		if err := client.refreshToken(); err != nil {
+			if client.logger != nil {
+				client.logger.Printf("error refreshing token: %s", err)
+			}
+
+			return err
+		}
+
+		return client.performGet(url, body, retry-1, result)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return client.requestError(url, resp.StatusCode, string(body))
+	}
+
+	decoder := json.NewDecoder(resp.Body)
+
+	if err := decoder.Decode(result); err != nil {
+		return err
 	}
 
 	return nil
