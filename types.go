@@ -22,8 +22,9 @@ type Hit struct {
 }
 
 // Filter is used to filter statistics.
-// From and To are required dates (the time is ignored).
+// DomainID, From, and To are required dates (the time is ignored).
 type Filter struct {
+	DomainID             string    `json:"id"`
 	From                 time.Time `json:"from"`
 	To                   time.Time `json:"to"`
 	Path                 string    `json:"path,omitempty"`

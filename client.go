@@ -150,7 +150,7 @@ func (client *Client) Domain() (*Domain, error) {
 func (client *Client) SessionDuration(filter *Filter) ([]TimeSpentStats, error) {
 	stats := make([]TimeSpentStats, 0)
 
-	if err := client.performGet(client.baseURL+sessionDurationEndpoint, filter, requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(sessionDurationEndpoint, filter.DomainID), filter, requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -161,7 +161,7 @@ func (client *Client) SessionDuration(filter *Filter) ([]TimeSpentStats, error) 
 func (client *Client) TimeOnPage(filter *Filter) ([]TimeSpentStats, error) {
 	stats := make([]TimeSpentStats, 0)
 
-	if err := client.performGet(client.baseURL+timeOnPageEndpoint, filter, requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(timeOnPageEndpoint, filter.DomainID), filter, requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -172,7 +172,7 @@ func (client *Client) TimeOnPage(filter *Filter) ([]TimeSpentStats, error) {
 func (client *Client) UTMSource(filter *Filter) ([]UTMSourceStats, error) {
 	stats := make([]UTMSourceStats, 0)
 
-	if err := client.performGet(client.baseURL+utmSourceEndpoint, filter, requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(utmSourceEndpoint, filter.DomainID), filter, requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -183,7 +183,7 @@ func (client *Client) UTMSource(filter *Filter) ([]UTMSourceStats, error) {
 func (client *Client) UTMMedium(filter *Filter) ([]UTMMediumStats, error) {
 	stats := make([]UTMMediumStats, 0)
 
-	if err := client.performGet(client.baseURL+utmMediumEndpoint, filter, requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(utmMediumEndpoint, filter.DomainID), filter, requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -194,7 +194,7 @@ func (client *Client) UTMMedium(filter *Filter) ([]UTMMediumStats, error) {
 func (client *Client) UTMCampaign(filter *Filter) ([]UTMCampaignStats, error) {
 	stats := make([]UTMCampaignStats, 0)
 
-	if err := client.performGet(client.baseURL+utmCampaignEndpoint, filter, requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(utmCampaignEndpoint, filter.DomainID), filter, requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -205,7 +205,7 @@ func (client *Client) UTMCampaign(filter *Filter) ([]UTMCampaignStats, error) {
 func (client *Client) UTMContent(filter *Filter) ([]UTMContentStats, error) {
 	stats := make([]UTMContentStats, 0)
 
-	if err := client.performGet(client.baseURL+utmContentEndpoint, filter, requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(utmContentEndpoint, filter.DomainID), filter, requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -216,7 +216,7 @@ func (client *Client) UTMContent(filter *Filter) ([]UTMContentStats, error) {
 func (client *Client) UTMTerm(filter *Filter) ([]UTMTermStats, error) {
 	stats := make([]UTMTermStats, 0)
 
-	if err := client.performGet(client.baseURL+utmTermEndpoint, filter, requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(utmTermEndpoint, filter.DomainID), filter, requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -227,7 +227,7 @@ func (client *Client) UTMTerm(filter *Filter) ([]UTMTermStats, error) {
 func (client *Client) Visitors(filter *Filter) ([]VisitorStats, error) {
 	stats := make([]VisitorStats, 0)
 
-	if err := client.performGet(client.baseURL+visitorsEndpoint, filter, requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(visitorsEndpoint, filter.DomainID), filter, requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -238,7 +238,7 @@ func (client *Client) Visitors(filter *Filter) ([]VisitorStats, error) {
 func (client *Client) Pages(filter *Filter) ([]PageStats, error) {
 	stats := make([]PageStats, 0)
 
-	if err := client.performGet(client.baseURL+pagesEndpoint, filter, requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(pagesEndpoint, filter.DomainID), filter, requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -249,7 +249,7 @@ func (client *Client) Pages(filter *Filter) ([]PageStats, error) {
 func (client *Client) ConversionGoals(filter *Filter) ([]ConversionGoal, error) {
 	stats := make([]ConversionGoal, 0)
 
-	if err := client.performGet(client.baseURL+conversionGoalsEndpoint, filter, requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(conversionGoalsEndpoint, filter.DomainID), filter, requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -260,7 +260,7 @@ func (client *Client) ConversionGoals(filter *Filter) ([]ConversionGoal, error) 
 func (client *Client) Growth(filter *Filter) (*Growth, error) {
 	growth := new(Growth)
 
-	if err := client.performGet(client.baseURL+growthRateEndpoint, filter, requestRetries, growth); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(growthRateEndpoint, filter.DomainID), filter, requestRetries, growth); err != nil {
 		return nil, err
 	}
 
@@ -271,7 +271,7 @@ func (client *Client) Growth(filter *Filter) (*Growth, error) {
 func (client *Client) ActiveVisitors(filter *Filter) (*ActiveVisitorsData, error) {
 	active := new(ActiveVisitorsData)
 
-	if err := client.performGet(client.baseURL+activeVisitorsEndpoint, filter, requestRetries, active); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(activeVisitorsEndpoint, filter.DomainID), filter, requestRetries, active); err != nil {
 		return nil, err
 	}
 
@@ -282,7 +282,7 @@ func (client *Client) ActiveVisitors(filter *Filter) (*ActiveVisitorsData, error
 func (client *Client) TimeOfDay(filter *Filter) ([]VisitorHourStats, error) {
 	stats := make([]VisitorHourStats, 0)
 
-	if err := client.performGet(client.baseURL+timeOfDayEndpoint, filter, requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(timeOfDayEndpoint, filter.DomainID), filter, requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -293,7 +293,7 @@ func (client *Client) TimeOfDay(filter *Filter) ([]VisitorHourStats, error) {
 func (client *Client) Languages(filter *Filter) ([]LanguageStats, error) {
 	stats := make([]LanguageStats, 0)
 
-	if err := client.performGet(client.baseURL+languageEndpoint, filter, requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(languageEndpoint, filter.DomainID), filter, requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -304,7 +304,7 @@ func (client *Client) Languages(filter *Filter) ([]LanguageStats, error) {
 func (client *Client) Referrer(filter *Filter) ([]ReferrerStats, error) {
 	stats := make([]ReferrerStats, 0)
 
-	if err := client.performGet(client.baseURL+referrerEndpoint, filter, requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(referrerEndpoint, filter.DomainID), filter, requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -315,7 +315,7 @@ func (client *Client) Referrer(filter *Filter) ([]ReferrerStats, error) {
 func (client *Client) OS(filter *Filter) ([]OSStats, error) {
 	stats := make([]OSStats, 0)
 
-	if err := client.performGet(client.baseURL+osEndpoint, filter, requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(osEndpoint, filter.DomainID), filter, requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -326,7 +326,7 @@ func (client *Client) OS(filter *Filter) ([]OSStats, error) {
 func (client *Client) Browser(filter *Filter) ([]BrowserStats, error) {
 	stats := make([]BrowserStats, 0)
 
-	if err := client.performGet(client.baseURL+browserEndpoint, filter, requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(browserEndpoint, filter.DomainID), filter, requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -337,7 +337,7 @@ func (client *Client) Browser(filter *Filter) ([]BrowserStats, error) {
 func (client *Client) Country(filter *Filter) ([]CountryStats, error) {
 	stats := make([]CountryStats, 0)
 
-	if err := client.performGet(client.baseURL+countryEndpoint, filter, requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(countryEndpoint, filter.DomainID), filter, requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -348,7 +348,7 @@ func (client *Client) Country(filter *Filter) ([]CountryStats, error) {
 func (client *Client) Platform(filter *Filter) (*PlatformStats, error) {
 	platforms := new(PlatformStats)
 
-	if err := client.performGet(client.baseURL+platformEndpoint, filter, requestRetries, platforms); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(platformEndpoint, filter.DomainID), filter, requestRetries, platforms); err != nil {
 		return nil, err
 	}
 
@@ -359,7 +359,7 @@ func (client *Client) Platform(filter *Filter) (*PlatformStats, error) {
 func (client *Client) Screen(filter *Filter) ([]ScreenClassStats, error) {
 	stats := make([]ScreenClassStats, 0)
 
-	if err := client.performGet(client.baseURL+screenEndpoint, filter, requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(screenEndpoint, filter.DomainID), filter, requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -370,7 +370,7 @@ func (client *Client) Screen(filter *Filter) ([]ScreenClassStats, error) {
 func (client *Client) Keywords(filter *Filter) ([]Keyword, error) {
 	stats := make([]Keyword, 0)
 
-	if err := client.performGet(client.baseURL+keywordsEndpoint, filter, requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(keywordsEndpoint, filter.DomainID), filter, requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -557,4 +557,8 @@ func (client *Client) requestError(url string, statusCode int, body string) erro
 	}
 
 	return errors.New(fmt.Sprintf("%s: received status code %d on request", url, statusCode))
+}
+
+func (client *Client) getStatsRequestURL(endpoint, id string) string {
+	return fmt.Sprintf("%s%s?id=%s", client.baseURL, endpoint, id)
 }
