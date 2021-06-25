@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0
+
+* added `source` and `utm_source` to referrers
+* added methods to read statistics
+* updated dependencies
+
 ## 1.2.0
 
 * added screen width and height to `Hit`
