@@ -21,6 +21,15 @@ type Hit struct {
 	ScreenHeight   int    `json:"screen_height"`
 }
 
+// Event represents a single data point for custom events.
+// It's basically the same as Hit, but with some additional fields (event name, time, and meta fields).
+type Event struct {
+	Hit
+	Name            string            `json:"event_name"`
+	DurationSeconds int               `json:"event_duration"`
+	Metadata        map[string]string `json:"event_meta"`
+}
+
 // Filter is used to filter statistics.
 // DomainID, From, and To are required dates (the time is ignored).
 type Filter struct {
@@ -29,6 +38,8 @@ type Filter struct {
 	To                   time.Time `json:"to"`
 	Path                 string    `json:"path,omitempty"`
 	Pattern              string    `json:"pattern,omitempty"`
+	Event                string    `json:"event,omitempty"`
+	EventMetaKey         string    `json:"event_meta_key,omitempty"`
 	Language             string    `json:"language,omitempty"`
 	Country              string    `json:"country,omitempty"`
 	Referrer             string    `json:"referrer,omitempty"`
@@ -146,6 +157,17 @@ type ConversionGoal struct {
 	CRGoal        null.Float64 `json:"cr_goal"`
 	DeleteReached bool         `json:"delete_reached"`
 	EmailReached  bool         `json:"email_reached"`
+}
+
+// EventStats is the result type for custom events.
+type EventStats struct {
+	Name                   string   `json:"name"`
+	Visitors               int      `json:"visitors"`
+	Views                  int      `json:"views"`
+	CR                     float64  `json:"cr"`
+	AverageDurationSeconds int      `json:"average_duration_seconds"`
+	MetaKeys               []string `json:"meta_keys"`
+	MetaValue              string   `json:"meta_value"`
 }
 
 // PageConversionsStats is the result type for page conversions.
