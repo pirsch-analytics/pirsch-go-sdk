@@ -12,8 +12,8 @@ import (
 const (
 	// Client ID, secret, and hostname.
 	// Replace them with your own.
-	clientID     = "VPvOChTcKhn8gz0Xni0TaKY4C0PkuyKP"
-	clientSecret = "MyYPXtEHKoGVZHNFuVDyBEMYsKZWvKrsPsSyHYqC4oRS2gyv62a0WRiEei4AryAE"
+	clientID     = "ItFdRZ3WrXq8jGQVU9srOVMpZ7wnjQJG"
+	clientSecret = "zW9Nr5KLG1g0OuXI3qrCLDk7wsjDMluLTe1XO2E019fZjp1yuUzyGRI0t8CNJgMQ"
 	hostname     = "pirsch.io"
 )
 
@@ -39,6 +39,15 @@ func main() {
 		}
 
 		w.Write([]byte("<h1>Hello from Pirsch!</h1>"))
+	})
+
+	// Add a handler to send an event.
+	http.HandleFunc("/event", func(w http.ResponseWriter, r *http.Request) {
+		if err := client.Event("My First Event", 42, map[string]string{"hello": "world"}, r); err != nil {
+			log.Println(err)
+		}
+
+		w.Write([]byte("<h1>Event sent!</h1>"))
 	})
 
 	// Add a handler to read statistics.
@@ -117,6 +126,24 @@ func main() {
 		w.Write([]byte("<h2>Conversion Goals</h2><pre>"))
 		conversionGoalsJson, _ := json.Marshal(conversionGoals)
 		w.Write(conversionGoalsJson)
+		w.Write([]byte("</pre>"))
+
+		filter.Event = "My First Event"
+		events, _ := client.Events(filter)
+		filter.Event = ""
+		w.Write([]byte("<h2>Events</h2><pre>"))
+		eventsJson, _ := json.Marshal(events)
+		w.Write(eventsJson)
+		w.Write([]byte("</pre>"))
+
+		filter.Event = "My First Event"
+		filter.EventMetaKey = "hello"
+		eventMetadata, err := client.EventMetadata(filter)
+		filter.Event = ""
+		filter.EventMetaKey = ""
+		w.Write([]byte("<h2>Event Metadata</h2><pre>"))
+		eventMetadataJson, err := json.Marshal(eventMetadata)
+		w.Write(eventMetadataJson)
 		w.Write([]byte("</pre>"))
 
 		growth, _ := client.Growth(filter)

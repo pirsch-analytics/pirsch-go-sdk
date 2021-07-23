@@ -16,6 +16,7 @@ const (
 	defaultBaseURL          = "https://api.pirsch.io"
 	authenticationEndpoint  = "/api/v1/token"
 	hitEndpoint             = "/api/v1/hit"
+	eventEndpoint           = "/api/v1/event"
 	domainEndpoint          = "/api/v1/domain"
 	sessionDurationEndpoint = "/api/v1/statistics/duration/session"
 	timeOnPageEndpoint      = "/api/v1/statistics/duration/page"
@@ -27,6 +28,8 @@ const (
 	visitorsEndpoint        = "/api/v1/statistics/visitor"
 	pagesEndpoint           = "/api/v1/statistics/page"
 	conversionGoalsEndpoint = "/api/v1/statistics/goals"
+	eventsEndpoint          = "/api/v1/statistics/events"
+	eventMetadataEndpoint   = "/api/v1/statistics/event/meta"
 	growthRateEndpoint      = "/api/v1/statistics/growth"
 	activeVisitorsEndpoint  = "/api/v1/statistics/active"
 	timeOfDayEndpoint       = "/api/v1/statistics/hours"
@@ -128,6 +131,51 @@ func (client *Client) HitWithOptions(r *http.Request, options *HitOptions) error
 		Referrer:       client.getReferrerFromHeaderOrQuery(r),
 		ScreenWidth:    options.ScreenWidth,
 		ScreenHeight:   options.ScreenHeight,
+	}, requestRetries)
+}
+
+// Event sends an event to Pirsch for given http.Request.
+func (client *Client) Event(name string, durationSeconds int, meta map[string]string, r *http.Request) error {
+	return client.EventWithOptions(name, durationSeconds, meta, r, nil)
+}
+
+// EventWithOptions sends an event to Pirsch for given http.Request and options.
+func (client *Client) EventWithOptions(name string, durationSeconds int, meta map[string]string, r *http.Request, options *HitOptions) error {
+	if r.Header.Get("DNT") == "1" {
+		return nil
+	}
+
+	if options == nil {
+		options = new(HitOptions)
+	}
+
+	metaKeys := make([]string, 0)
+	metaValues := make([]string, 0)
+
+	for k, v := range meta {
+		metaKeys = append(metaKeys, k)
+		metaValues = append(metaKeys, v)
+	}
+
+	return client.performPost(client.baseURL+eventEndpoint, &Event{
+		Name:            name,
+		DurationSeconds: durationSeconds,
+		MetaKeys:        metaKeys,
+		MetaValues:      metaValues,
+		Hit: Hit{
+			Hostname:       client.hostname,
+			URL:            r.URL.String(),
+			IP:             r.RemoteAddr,
+			CFConnectingIP: r.Header.Get("CF-Connecting-IP"),
+			XForwardedFor:  r.Header.Get("X-Forwarded-For"),
+			Forwarded:      r.Header.Get("Forwarded"),
+			XRealIP:        r.Header.Get("X-Real-IP"),
+			UserAgent:      r.Header.Get("User-Agent"),
+			AcceptLanguage: r.Header.Get("Accept-Language"),
+			Referrer:       client.getReferrerFromHeaderOrQuery(r),
+			ScreenWidth:    options.ScreenWidth,
+			ScreenHeight:   options.ScreenHeight,
+		},
 	}, requestRetries)
 }
 
@@ -250,6 +298,28 @@ func (client *Client) ConversionGoals(filter *Filter) ([]ConversionGoal, error) 
 	stats := make([]ConversionGoal, 0)
 
 	if err := client.performGet(client.getStatsRequestURL(conversionGoalsEndpoint, filter.DomainID), filter, requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// Events returns all events.
+func (client *Client) Events(filter *Filter) ([]EventStats, error) {
+	stats := make([]EventStats, 0)
+
+	if err := client.performGet(client.getStatsRequestURL(eventsEndpoint, filter.DomainID), filter, requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// EventMetadata returns the metadata values for an event and key.
+func (client *Client) EventMetadata(filter *Filter) ([]EventStats, error) {
+	stats := make([]EventStats, 0)
+
+	if err := client.performGet(client.getStatsRequestURL(eventMetadataEndpoint, filter.DomainID), filter, requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
