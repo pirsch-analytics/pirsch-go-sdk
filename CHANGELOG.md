@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.0
+
+* added method to send events
+* added reading event statistics
+* fixed filter parameters to read statistics
+
 ## 1.3.0
 
 * added `source` and `utm_source` to referrers

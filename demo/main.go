@@ -12,8 +12,8 @@ import (
 const (
 	// Client ID, secret, and hostname.
 	// Replace them with your own.
-	clientID     = "ItFdRZ3WrXq8jGQVU9srOVMpZ7wnjQJG"
-	clientSecret = "zW9Nr5KLG1g0OuXI3qrCLDk7wsjDMluLTe1XO2E019fZjp1yuUzyGRI0t8CNJgMQ"
+	clientID     = "2zH9LVKwEHv9nCK8Nr81HHeLF9Olz2ip"
+	clientSecret = "8BhHk3GBvUdgWhdQygqzxRDZKTYadh8URARmSFxqlhDiWPPRT0ycWOi7kdejpZHY"
 	hostname     = "pirsch.io"
 )
 
@@ -128,9 +128,7 @@ func main() {
 		w.Write(conversionGoalsJson)
 		w.Write([]byte("</pre>"))
 
-		filter.Event = "My First Event"
 		events, _ := client.Events(filter)
-		filter.Event = ""
 		w.Write([]byte("<h2>Events</h2><pre>"))
 		eventsJson, _ := json.Marshal(events)
 		w.Write(eventsJson)
@@ -139,12 +137,12 @@ func main() {
 		filter.Event = "My First Event"
 		filter.EventMetaKey = "hello"
 		eventMetadata, err := client.EventMetadata(filter)
-		filter.Event = ""
-		filter.EventMetaKey = ""
 		w.Write([]byte("<h2>Event Metadata</h2><pre>"))
 		eventMetadataJson, err := json.Marshal(eventMetadata)
 		w.Write(eventMetadataJson)
 		w.Write([]byte("</pre>"))
+		filter.Event = ""
+		filter.EventMetaKey = ""
 
 		growth, _ := client.Growth(filter)
 		w.Write([]byte("<h2>Growth</h2><pre>"))

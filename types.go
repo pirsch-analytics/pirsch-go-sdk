@@ -25,10 +25,9 @@ type Hit struct {
 // It's basically the same as Hit, but with some additional fields (event name, time, and meta fields).
 type Event struct {
 	Hit
-	Name            string   `db:"event_name" json:"name"`
-	DurationSeconds int      `db:"event_duration_seconds" json:"duration_seconds"`
-	MetaKeys        []string `db:"event_meta_keys" json:"meta_keys"`
-	MetaValues      []string `db:"event_meta_values" json:"meta_values"`
+	Name            string            `json:"event_name"`
+	DurationSeconds int               `json:"event_duration"`
+	Metadata        map[string]string `json:"event_meta"`
 }
 
 // Filter is used to filter statistics.
