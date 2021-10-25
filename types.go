@@ -38,11 +38,15 @@ type Filter struct {
 	To                   time.Time `json:"to"`
 	Path                 string    `json:"path,omitempty"`
 	Pattern              string    `json:"pattern,omitempty"`
+	EntryPath            string    `json:"entry_path,omitempty"`
+	ExitPath             string    `json:"exit_path,omitempty"`
 	Event                string    `json:"event,omitempty"`
 	EventMetaKey         string    `json:"event_meta_key,omitempty"`
 	Language             string    `json:"language,omitempty"`
 	Country              string    `json:"country,omitempty"`
+	City                 string    `json:"city,omitempty"`
 	Referrer             string    `json:"referrer,omitempty"`
+	ReferrerName         string    `json:"referrer_name,omitempty"`
 	OS                   string    `json:"os,omitempty"`
 	Browser              string    `json:"browser,omitempty"`
 	Platform             string    `json:"platform,omitempty"`
@@ -145,6 +149,27 @@ type PageStats struct {
 	AverageTimeSpentSeconds int     `json:"average_time_spent_seconds"`
 }
 
+// EntryStats is the result type for entry page statistics.
+type EntryStats struct {
+	Path                    string  `db:"entry_path" json:"path"`
+	Title                   string  `json:"title"`
+	Visitors                int     `json:"visitors"`
+	Sessions                int     `json:"sessions"`
+	Entries                 int     `json:"entries"`
+	EntryRate               float64 `db:"entry_rate" json:"entry_rate"`
+	AverageTimeSpentSeconds int     `db:"average_time_spent_seconds" json:"average_time_spent_seconds"`
+}
+
+// ExitStats is the result type for exit page statistics.
+type ExitStats struct {
+	Path     string  `db:"exit_path" json:"path"`
+	Title    string  `json:"title"`
+	Visitors int     `json:"visitors"`
+	Sessions int     `json:"sessions"`
+	Exits    int     `json:"exits"`
+	ExitRate float64 `db:"exit_rate" json:"exit_rate"`
+}
+
 // ConversionGoal is a conversion goal as configured on the dashboard.
 type ConversionGoal struct {
 	BaseEntity
@@ -222,6 +247,12 @@ type CountryStats struct {
 	CountryCode string `json:"country_code"`
 }
 
+// CityStats is the result type for city statistics.
+type CityStats struct {
+	MetaStats
+	City string `json:"city"`
+}
+
 // BrowserStats is the result type for browser statistics.
 type BrowserStats struct {
 	MetaStats
@@ -240,6 +271,7 @@ type ReferrerStats struct {
 	ReferrerName     string  `json:"referrer_name"`
 	ReferrerIcon     string  `json:"referrer_icon"`
 	Visitors         int     `json:"visitors"`
+	Sessions         int     `json:"sessions"`
 	RelativeVisitors float64 `json:"relative_visitors"`
 	Bounces          int     `json:"bounces"`
 	BounceRate       float64 `json:"bounce_rate"`

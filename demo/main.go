@@ -80,6 +80,18 @@ func main() {
 		w.Write(pagesJson)
 		w.Write([]byte("</pre>"))
 
+		entryPages, _ := client.EntryPages(filter)
+		w.Write([]byte("<h2>Entry Pages</h2><pre>"))
+		entryPagesJson, _ := json.Marshal(entryPages)
+		w.Write(entryPagesJson)
+		w.Write([]byte("</pre>"))
+
+		exitPages, _ := client.Pages(filter)
+		w.Write([]byte("<h2>Exit Pages</h2><pre>"))
+		exitPagesJson, _ := json.Marshal(exitPages)
+		w.Write(exitPagesJson)
+		w.Write([]byte("</pre>"))
+
 		sessionDuration, _ := client.SessionDuration(filter)
 		w.Write([]byte("<h2>Session Duration</h2><pre>"))
 		sessionDurationJson, _ := json.Marshal(sessionDuration)
@@ -190,6 +202,12 @@ func main() {
 		w.Write([]byte("<h2>Country</h2><pre>"))
 		countryJson, _ := json.Marshal(country)
 		w.Write(countryJson)
+		w.Write([]byte("</pre>"))
+
+		city, _ := client.City(filter)
+		w.Write([]byte("<h2>City</h2><pre>"))
+		cityJson, _ := json.Marshal(city)
+		w.Write(cityJson)
 		w.Write([]byte("</pre>"))
 
 		platform, _ := client.Platform(filter)

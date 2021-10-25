@@ -19,6 +19,7 @@ const (
 	authenticationEndpoint  = "/api/v1/token"
 	hitEndpoint             = "/api/v1/hit"
 	eventEndpoint           = "/api/v1/event"
+	sessionEndpoint         = "/api/v1/session"
 	domainEndpoint          = "/api/v1/domain"
 	sessionDurationEndpoint = "/api/v1/statistics/duration/session"
 	timeOnPageEndpoint      = "/api/v1/statistics/duration/page"
@@ -29,6 +30,8 @@ const (
 	utmTermEndpoint         = "/api/v1/statistics/utm/term"
 	visitorsEndpoint        = "/api/v1/statistics/visitor"
 	pagesEndpoint           = "/api/v1/statistics/page"
+	entryPagesEndpoint      = "/api/v1/statistics/page/entry"
+	exitPagesEndpoint       = "/api/v1/statistics/page/exit"
 	conversionGoalsEndpoint = "/api/v1/statistics/goals"
 	eventsEndpoint          = "/api/v1/statistics/events"
 	eventMetadataEndpoint   = "/api/v1/statistics/event/meta"
@@ -40,6 +43,7 @@ const (
 	osEndpoint              = "/api/v1/statistics/os"
 	browserEndpoint         = "/api/v1/statistics/browser"
 	countryEndpoint         = "/api/v1/statistics/country"
+	cityEndpoint            = "/api/v1/statistics/city"
 	platformEndpoint        = "/api/v1/statistics/platform"
 	screenEndpoint          = "/api/v1/statistics/screen"
 	keywordsEndpoint        = "/api/v1/statistics/keywords"
@@ -54,7 +58,7 @@ var referrerQueryParams = []string{
 	"utm_source",
 }
 
-// Client is a client used to access the Pirsch API.
+// Client is used to access the Pirsch API.
 type Client struct {
 	baseURL      string
 	logger       *log.Logger
@@ -172,6 +176,33 @@ func (client *Client) EventWithOptions(name string, durationSeconds int, meta ma
 	}, requestRetries)
 }
 
+// Session keeps a session alive for the given http.Request.
+func (client *Client) Session(r *http.Request) error {
+	return client.HitWithOptions(r, nil)
+}
+
+// SessionWithOptions keeps a session alive for the given http.Request and options.
+func (client *Client) SessionWithOptions(r *http.Request, options *HitOptions) error {
+	if r.Header.Get("DNT") == "1" {
+		return nil
+	}
+
+	if options == nil {
+		options = new(HitOptions)
+	}
+
+	return client.performPost(client.baseURL+sessionEndpoint, &Hit{
+		Hostname:       client.hostname,
+		URL:            r.URL.String(),
+		IP:             r.RemoteAddr,
+		CFConnectingIP: r.Header.Get("CF-Connecting-IP"),
+		XForwardedFor:  r.Header.Get("X-Forwarded-For"),
+		Forwarded:      r.Header.Get("Forwarded"),
+		XRealIP:        r.Header.Get("X-Real-IP"),
+		UserAgent:      r.Header.Get("User-Agent"),
+	}, requestRetries)
+}
+
 // Domain returns the domain for this client.
 func (client *Client) Domain() (*Domain, error) {
 	domains := make([]Domain, 0, 1)
@@ -280,6 +311,28 @@ func (client *Client) Pages(filter *Filter) ([]PageStats, error) {
 	stats := make([]PageStats, 0)
 
 	if err := client.performGet(client.getStatsRequestURL(pagesEndpoint, filter), requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// EntryPages returns the entry page statistics grouped by page.
+func (client *Client) EntryPages(filter *Filter) ([]EntryStats, error) {
+	stats := make([]EntryStats, 0)
+
+	if err := client.performGet(client.getStatsRequestURL(entryPagesEndpoint, filter), requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// ExitPages returns the exit page statistics grouped by page.
+func (client *Client) ExitPages(filter *Filter) ([]ExitStats, error) {
+	stats := make([]ExitStats, 0)
+
+	if err := client.performGet(client.getStatsRequestURL(exitPagesEndpoint, filter), requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -401,6 +454,17 @@ func (client *Client) Country(filter *Filter) ([]CountryStats, error) {
 	stats := make([]CountryStats, 0)
 
 	if err := client.performGet(client.getStatsRequestURL(countryEndpoint, filter), requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// City returns city statistics.
+func (client *Client) City(filter *Filter) ([]CityStats, error) {
+	stats := make([]CityStats, 0)
+
+	if err := client.performGet(client.getStatsRequestURL(cityEndpoint, filter), requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -623,12 +687,16 @@ func (client *Client) getStatsRequestURL(endpoint string, filter *Filter) string
 	v.Set("from", filter.From.Format("2006-01-02"))
 	v.Set("to", filter.To.Format("2006-01-02"))
 	v.Set("path", filter.Path)
+	v.Set("entry_path", filter.EntryPath)
+	v.Set("exit_path", filter.ExitPath)
 	v.Set("pattern", filter.Pattern)
 	v.Set("event", filter.Event)
 	v.Set("event_meta_key", filter.EventMetaKey)
 	v.Set("language", filter.Language)
 	v.Set("country", filter.Country)
+	v.Set("city", filter.City)
 	v.Set("referrer", filter.Referrer)
+	v.Set("referrer_name", filter.ReferrerName)
 	v.Set("os", filter.OS)
 	v.Set("browser", filter.Browser)
 	v.Set("platform", filter.Platform)
