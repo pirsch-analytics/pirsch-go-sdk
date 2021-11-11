@@ -28,6 +28,7 @@ const (
 	utmCampaignEndpoint     = "/api/v1/statistics/utm/campaign"
 	utmContentEndpoint      = "/api/v1/statistics/utm/content"
 	utmTermEndpoint         = "/api/v1/statistics/utm/term"
+	totalVisitorsEndpoint   = "/api/v1/statistics/total"
 	visitorsEndpoint        = "/api/v1/statistics/visitor"
 	pagesEndpoint           = "/api/v1/statistics/page"
 	entryPagesEndpoint      = "/api/v1/statistics/page/entry"
@@ -289,6 +290,17 @@ func (client *Client) UTMTerm(filter *Filter) ([]UTMTermStats, error) {
 	stats := make([]UTMTermStats, 0)
 
 	if err := client.performGet(client.getStatsRequestURL(utmTermEndpoint, filter), requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// TotalVisitors returns the total visitor statistics.
+func (client *Client) TotalVisitors(filter *Filter) (*TotalVisitorStats, error) {
+	stats := new(TotalVisitorStats)
+
+	if err := client.performGet(client.getStatsRequestURL(totalVisitorsEndpoint, filter), requestRetries, stats); err != nil {
 		return nil, err
 	}
 

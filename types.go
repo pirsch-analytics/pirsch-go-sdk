@@ -126,6 +126,15 @@ type UTMTermStats struct {
 	UTMTerm string `json:"utm_term"`
 }
 
+// TotalVisitorStats is the result type for total visitor statistics.
+type TotalVisitorStats struct {
+	Visitors   int     `json:"visitors"`
+	Views      int     `json:"views"`
+	Sessions   int     `json:"sessions"`
+	Bounces    int     `json:"bounces"`
+	BounceRate float64 `db:"bounce_rate" json:"bounce_rate"`
+}
+
 // VisitorStats is the result type for visitor statistics.
 type VisitorStats struct {
 	Day        time.Time `json:"day"`
