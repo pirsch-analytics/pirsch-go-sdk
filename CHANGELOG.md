@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0
+
+* added new hourly visitor statistics
+
 ## 1.5.1
 
 * added endpoint for total visitor statistics

@@ -240,8 +240,12 @@ type ActiveVisitorsData struct {
 
 // VisitorHourStats is the result type for visitor statistics grouped by time of day.
 type VisitorHourStats struct {
-	Hour     int `json:"hour"`
-	Visitors int `json:"visitors"`
+	Hour       int     `json:"hour"`
+	Visitors   int     `json:"visitors"`
+	Views      int     `json:"views"`
+	Sessions   int     `json:"sessions"`
+	Bounces    int     `json:"bounces"`
+	BounceRate float64 `json:"bounce_rate"`
 }
 
 // LanguageStats is the result type for language statistics.
