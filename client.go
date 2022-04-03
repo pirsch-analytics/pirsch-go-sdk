@@ -36,13 +36,16 @@ const (
 	conversionGoalsEndpoint = "/api/v1/statistics/goals"
 	eventsEndpoint          = "/api/v1/statistics/events"
 	eventMetadataEndpoint   = "/api/v1/statistics/event/meta"
+	listEventsEndpoint      = "/api/v1/statistics/event/list"
 	growthRateEndpoint      = "/api/v1/statistics/growth"
 	activeVisitorsEndpoint  = "/api/v1/statistics/active"
 	timeOfDayEndpoint       = "/api/v1/statistics/hours"
 	languageEndpoint        = "/api/v1/statistics/language"
 	referrerEndpoint        = "/api/v1/statistics/referrer"
 	osEndpoint              = "/api/v1/statistics/os"
+	osVersionEndpoint       = "/api/v1/statistics/os/version"
 	browserEndpoint         = "/api/v1/statistics/browser"
+	browserVersionEndpoint  = "/api/v1/statistics/browser/version"
 	countryEndpoint         = "/api/v1/statistics/country"
 	cityEndpoint            = "/api/v1/statistics/city"
 	platformEndpoint        = "/api/v1/statistics/platform"
@@ -384,6 +387,17 @@ func (client *Client) EventMetadata(filter *Filter) ([]EventStats, error) {
 	return stats, nil
 }
 
+// ListEvents returns a list of all events including metadata.
+func (client *Client) ListEvents(filter *Filter) ([]EventListStats, error) {
+	stats := make([]EventListStats, 0)
+
+	if err := client.performGet(client.getStatsRequestURL(listEventsEndpoint, filter), requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
 // Growth returns the growth rates for visitors, bounces, ...
 func (client *Client) Growth(filter *Filter) (*Growth, error) {
 	growth := new(Growth)
@@ -450,11 +464,33 @@ func (client *Client) OS(filter *Filter) ([]OSStats, error) {
 	return stats, nil
 }
 
+// OSVersions returns operating system version statistics.
+func (client *Client) OSVersions(filter *Filter) ([]OSVersionStats, error) {
+	stats := make([]OSVersionStats, 0)
+
+	if err := client.performGet(client.getStatsRequestURL(osVersionEndpoint, filter), requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
 // Browser returns browser statistics.
 func (client *Client) Browser(filter *Filter) ([]BrowserStats, error) {
 	stats := make([]BrowserStats, 0)
 
 	if err := client.performGet(client.getStatsRequestURL(browserEndpoint, filter), requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// BrowserVersions returns browser version statistics.
+func (client *Client) BrowserVersions(filter *Filter) ([]BrowserVersionStats, error) {
+	stats := make([]BrowserVersionStats, 0)
+
+	if err := client.performGet(client.getStatsRequestURL(browserVersionEndpoint, filter), requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -535,12 +571,8 @@ func (client *Client) getReferrerFromHeaderOrQuery(r *http.Request) string {
 func (client *Client) refreshToken() error {
 	client.m.Lock()
 	defer client.m.Unlock()
-
-	// check token has expired or is about to expire soon
-	if client.expiresAt.After(time.Now().UTC().Add(-time.Minute)) {
-		return nil
-	}
-
+	client.accessToken = ""
+	client.expiresAt = time.Time{}
 	body := struct {
 		ClientId     string `json:"client_id"`
 		ClientSecret string `json:"client_secret"`
@@ -578,6 +610,24 @@ func (client *Client) refreshToken() error {
 }
 
 func (client *Client) performPost(url string, body interface{}, retry int) error {
+	client.m.RLock()
+	accessToken := client.accessToken
+	client.m.RUnlock()
+
+	if retry > 0 && accessToken == "" {
+		client.waitBeforeNextRequest(retry)
+
+		if err := client.refreshToken(); err != nil {
+			if client.logger != nil {
+				client.logger.Printf("error refreshing token: %s", err)
+			}
+
+			return errors.New(fmt.Sprintf("error refreshing token (attempt %d/%d): %s", requestRetries-retry, requestRetries, err))
+		}
+
+		return client.performPost(url, body, retry-1)
+	}
+
 	reqBody, err := json.Marshal(body)
 
 	if err != nil {
@@ -600,16 +650,16 @@ func (client *Client) performPost(url string, body interface{}, retry int) error
 		return err
 	}
 
-	// refresh access token and retry on 401
-	if retry > 0 && resp.StatusCode == http.StatusUnauthorized {
-		time.Sleep(time.Millisecond * time.Duration((requestRetries-retry)*100+50))
+	// refresh access token and retry
+	if retry > 0 && resp.StatusCode != http.StatusOK {
+		client.waitBeforeNextRequest(retry)
 
 		if err := client.refreshToken(); err != nil {
 			if client.logger != nil {
 				client.logger.Printf("error refreshing token: %s", err)
 			}
 
-			return err
+			return errors.New(fmt.Sprintf("error refreshing token (attempt %d/%d): %s", requestRetries-retry, requestRetries, err))
 		}
 
 		return client.performPost(url, body, retry-1)
@@ -624,15 +674,19 @@ func (client *Client) performPost(url string, body interface{}, retry int) error
 }
 
 func (client *Client) performGet(url string, retry int, result interface{}) error {
-	if retry > 0 && client.accessToken == "" {
-		time.Sleep(time.Millisecond * time.Duration((requestRetries-retry)*100+50))
+	client.m.RLock()
+	accessToken := client.accessToken
+	client.m.RUnlock()
+
+	if retry > 0 && accessToken == "" {
+		client.waitBeforeNextRequest(retry)
 
 		if err := client.refreshToken(); err != nil {
 			if client.logger != nil {
 				client.logger.Printf("error refreshing token: %s", err)
 			}
 
-			return err
+			return errors.New(fmt.Sprintf("error refreshing token (attempt %d/%d): %s", requestRetries-retry, requestRetries, err))
 		}
 
 		return client.performGet(url, retry-1, result)
@@ -646,8 +700,8 @@ func (client *Client) performGet(url string, retry int, result interface{}) erro
 
 	client.m.RLock()
 	req.Header.Set("Authorization", "Bearer "+client.accessToken)
-	req.Header.Set("Content-Type", "application/json")
 	client.m.RUnlock()
+	req.Header.Set("Content-Type", "application/json")
 	c := http.Client{}
 	resp, err := c.Do(req)
 
@@ -655,16 +709,16 @@ func (client *Client) performGet(url string, retry int, result interface{}) erro
 		return err
 	}
 
-	// refresh access token and retry on 401
-	if retry > 0 && resp.StatusCode == http.StatusUnauthorized {
-		time.Sleep(time.Millisecond * time.Duration((requestRetries-retry)*100+50))
+	// refresh access token and retry
+	if retry > 0 && resp.StatusCode != http.StatusOK {
+		client.waitBeforeNextRequest(retry)
 
 		if err := client.refreshToken(); err != nil {
 			if client.logger != nil {
 				client.logger.Printf("error refreshing token: %s", err)
 			}
 
-			return err
+			return errors.New(fmt.Sprintf("error refreshing token (attempt %d/%d): %s", requestRetries-retry, requestRetries, err))
 		}
 
 		return client.performGet(url, retry-1, result)
@@ -727,4 +781,8 @@ func (client *Client) getStatsRequestURL(endpoint string, filter *Filter) string
 	}
 
 	return u + "?" + v.Encode()
+}
+
+func (client *Client) waitBeforeNextRequest(retry int) {
+	time.Sleep(time.Second * time.Duration(requestRetries-retry))
 }

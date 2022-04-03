@@ -5,6 +5,24 @@ import (
 	"time"
 )
 
+const (
+	// ScaleDay groups results by day.
+	ScaleDay = "day"
+
+	// ScaleWeek groups results by week.
+	ScaleWeek = "week"
+
+	// ScaleMonth groups results by month.
+	ScaleMonth = "month"
+
+	// ScaleYear groups results by year.
+	ScaleYear = "year"
+)
+
+// Scale is used to group results in the Filter.
+// Use one of the constants ScaleDay, ScaleWeek, ScaleMonth, ScaleYear.
+type Scale string
+
 // Hit are the parameters to send a page hit to Pirsch.
 type Hit struct {
 	Hostname       string
@@ -36,6 +54,8 @@ type Filter struct {
 	DomainID             string    `json:"id"`
 	From                 time.Time `json:"from"`
 	To                   time.Time `json:"to"`
+	Start                int       `json:"start,omitempty"`
+	Scale                Scale     `json:"scale,omitempty"`
 	Path                 string    `json:"path,omitempty"`
 	Pattern              string    `json:"pattern,omitempty"`
 	EntryPath            string    `json:"entry_path,omitempty"`
@@ -51,6 +71,8 @@ type Filter struct {
 	Browser              string    `json:"browser,omitempty"`
 	Platform             string    `json:"platform,omitempty"`
 	ScreenClass          string    `json:"screen_class,omitempty"`
+	ScreenWidth          string    `json:"screen_width,omitempty"`
+	ScreenHeight         string    `json:"screen_height,omitempty"`
 	UTMSource            string    `json:"utm_source,omitempty"`
 	UTMMedium            string    `json:"utm_medium,omitempty"`
 	UTMCampaign          string    `json:"utm_campaign,omitempty"`
@@ -85,8 +107,12 @@ type Domain struct {
 
 // TimeSpentStats is the time spent on the website or specific pages.
 type TimeSpentStats struct {
-	Day                     time.Time `json:"day"`
+	Day                     null.Time `json:"day"`
+	Week                    null.Time `json:"week"`
+	Month                   null.Time `json:"month"`
+	Year                    null.Time `json:"year"`
 	Path                    string    `json:"path"`
+	Title                   string    `json:"title"`
 	AverageTimeSpentSeconds int       `json:"average_time_spent_seconds"`
 }
 
@@ -132,12 +158,15 @@ type TotalVisitorStats struct {
 	Views      int     `json:"views"`
 	Sessions   int     `json:"sessions"`
 	Bounces    int     `json:"bounces"`
-	BounceRate float64 `db:"bounce_rate" json:"bounce_rate"`
+	BounceRate float64 `json:"bounce_rate"`
 }
 
 // VisitorStats is the result type for visitor statistics.
 type VisitorStats struct {
-	Day        time.Time `json:"day"`
+	Day        null.Time `json:"day"`
+	Week       null.Time `json:"week"`
+	Month      null.Time `json:"month"`
+	Year       null.Time `json:"year"`
 	Visitors   int       `json:"visitors"`
 	Views      int       `json:"views"`
 	Sessions   int       `json:"sessions"`
@@ -160,23 +189,23 @@ type PageStats struct {
 
 // EntryStats is the result type for entry page statistics.
 type EntryStats struct {
-	Path                    string  `db:"entry_path" json:"path"`
+	Path                    string  `json:"path"`
 	Title                   string  `json:"title"`
 	Visitors                int     `json:"visitors"`
 	Sessions                int     `json:"sessions"`
 	Entries                 int     `json:"entries"`
-	EntryRate               float64 `db:"entry_rate" json:"entry_rate"`
-	AverageTimeSpentSeconds int     `db:"average_time_spent_seconds" json:"average_time_spent_seconds"`
+	EntryRate               float64 `json:"entry_rate"`
+	AverageTimeSpentSeconds int     `json:"average_time_spent_seconds"`
 }
 
 // ExitStats is the result type for exit page statistics.
 type ExitStats struct {
-	Path     string  `db:"exit_path" json:"path"`
+	Path     string  `json:"path"`
 	Title    string  `json:"title"`
 	Visitors int     `json:"visitors"`
 	Sessions int     `json:"sessions"`
 	Exits    int     `json:"exits"`
-	ExitRate float64 `db:"exit_rate" json:"exit_rate"`
+	ExitRate float64 `json:"exit_rate"`
 }
 
 // ConversionGoal is a conversion goal as configured on the dashboard.
@@ -204,6 +233,14 @@ type EventStats struct {
 	MetaValue              string   `json:"meta_value"`
 }
 
+// EventListStats is the result type for a custom event list.
+type EventListStats struct {
+	Name     string            `json:"name"`
+	Meta     map[string]string `json:"meta"`
+	Visitors int               `json:"visitors"`
+	Count    int               `json:"count"`
+}
+
 // PageConversionsStats is the result type for page conversions.
 type PageConversionsStats struct {
 	Visitors int     `json:"visitors"`
@@ -229,6 +266,7 @@ type Growth struct {
 // ActiveVisitorStats is the result type for active visitor statistics.
 type ActiveVisitorStats struct {
 	Path     string `json:"path"`
+	Title    string `json:"title"`
 	Visitors int    `json:"visitors"`
 }
 
@@ -272,10 +310,24 @@ type BrowserStats struct {
 	Browser string `json:"browser"`
 }
 
+// BrowserVersionStats is the result type for browser version statistics.
+type BrowserVersionStats struct {
+	MetaStats
+	Browser        string `json:"browser"`
+	BrowserVersion string `db:"browser_version" json:"browser_version"`
+}
+
 // OSStats is the result type for operating system statistics.
 type OSStats struct {
 	MetaStats
 	OS string `json:"os"`
+}
+
+// OSVersionStats is the result type for operating system version statistics.
+type OSVersionStats struct {
+	MetaStats
+	OS        string `json:"os"`
+	OSVersion string `db:"os_version" json:"os_version"`
 }
 
 // ReferrerStats is the result type for referrer statistics.
