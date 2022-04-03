@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.0
+
+* added hourly visitor statistics, listing events, os and browser versions
+* added filter options
+* updated return types with new and modified fields
+* improved error messages
+
 ## 1.5.1
 
 * added endpoint for total visitor statistics
