@@ -212,14 +212,21 @@ type ExitStats struct {
 type ConversionGoal struct {
 	BaseEntity
 
-	DomainID      string       `json:"domain_id"`
-	Name          string       `json:"name"`
-	PathPattern   string       `json:"path_pattern"`
-	Pattern       string       `json:"pattern"`
-	VisitorGoal   null.Int64   `json:"visitor_goal"`
-	CRGoal        null.Float64 `json:"cr_goal"`
-	DeleteReached bool         `json:"delete_reached"`
-	EmailReached  bool         `json:"email_reached"`
+	PageGoal struct {
+		DomainID      string       `json:"domain_id"`
+		Name          string       `json:"name"`
+		PathPattern   string       `json:"path_pattern"`
+		Pattern       string       `json:"pattern"`
+		VisitorGoal   null.Int64   `json:"visitor_goal"`
+		CRGoal        null.Float64 `json:"cr_goal"`
+		DeleteReached bool         `json:"delete_reached"`
+		EmailReached  bool         `json:"email_reached"`
+	} `json:"page_goal"`
+	Stats struct {
+		Visitors int     `json:"visitors"`
+		Views    int     `json:"views"`
+		CR       float64 `json:"cr"`
+	} `json:"stats"`
 }
 
 // EventStats is the result type for custom events.

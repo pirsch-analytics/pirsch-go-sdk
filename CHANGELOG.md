@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.1
+
+* fixed conversion goal return type
+
 ## 1.6.0
 
 * added hourly visitor statistics, listing events, os and browser versions
