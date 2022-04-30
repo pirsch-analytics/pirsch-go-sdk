@@ -86,8 +86,19 @@ type ClientConfig struct {
 
 // HitOptions optional parameters to send with the hit request.
 type HitOptions struct {
-	ScreenWidth  int
-	ScreenHeight int
+	Hostname       string
+	URL            string
+	IP             string
+	CFConnectingIP string
+	XForwardedFor  string
+	Forwarded      string
+	XRealIP        string
+	UserAgent      string
+	AcceptLanguage string
+	Title          string
+	Referrer       string
+	ScreenWidth    int
+	ScreenHeight   int
 }
 
 // NewClient creates a new client for given client ID, client secret, hostname, and optional configuration.
@@ -128,20 +139,8 @@ func (client *Client) HitWithOptions(r *http.Request, options *HitOptions) error
 		options = new(HitOptions)
 	}
 
-	return client.performPost(client.baseURL+hitEndpoint, &Hit{
-		Hostname:       client.hostname,
-		URL:            r.URL.String(),
-		IP:             r.RemoteAddr,
-		CFConnectingIP: r.Header.Get("CF-Connecting-IP"),
-		XForwardedFor:  r.Header.Get("X-Forwarded-For"),
-		Forwarded:      r.Header.Get("Forwarded"),
-		XRealIP:        r.Header.Get("X-Real-IP"),
-		UserAgent:      r.Header.Get("User-Agent"),
-		AcceptLanguage: r.Header.Get("Accept-Language"),
-		Referrer:       client.getReferrerFromHeaderOrQuery(r),
-		ScreenWidth:    options.ScreenWidth,
-		ScreenHeight:   options.ScreenHeight,
-	}, requestRetries)
+	hit := client.getHit(r, options)
+	return client.performPost(client.baseURL+hitEndpoint, &hit, requestRetries)
 }
 
 // Event sends an event to Pirsch for given http.Request.
@@ -163,20 +162,7 @@ func (client *Client) EventWithOptions(name string, durationSeconds int, meta ma
 		Name:            name,
 		DurationSeconds: durationSeconds,
 		Metadata:        meta,
-		Hit: Hit{
-			Hostname:       client.hostname,
-			URL:            r.URL.String(),
-			IP:             r.RemoteAddr,
-			CFConnectingIP: r.Header.Get("CF-Connecting-IP"),
-			XForwardedFor:  r.Header.Get("X-Forwarded-For"),
-			Forwarded:      r.Header.Get("Forwarded"),
-			XRealIP:        r.Header.Get("X-Real-IP"),
-			UserAgent:      r.Header.Get("User-Agent"),
-			AcceptLanguage: r.Header.Get("Accept-Language"),
-			Referrer:       client.getReferrerFromHeaderOrQuery(r),
-			ScreenWidth:    options.ScreenWidth,
-			ScreenHeight:   options.ScreenHeight,
-		},
+		Hit:             client.getHit(r, options),
 	}, requestRetries)
 }
 
@@ -552,6 +538,24 @@ func (client *Client) Keywords(filter *Filter) ([]Keyword, error) {
 	return stats, nil
 }
 
+func (client *Client) getHit(r *http.Request, options *HitOptions) Hit {
+	return Hit{
+		Hostname:       client.selectField(options.Hostname, client.hostname),
+		URL:            client.selectField(options.URL, r.URL.String()),
+		IP:             client.selectField(options.IP, r.RemoteAddr),
+		CFConnectingIP: client.selectField(options.CFConnectingIP, r.Header.Get("CF-Connecting-IP")),
+		XForwardedFor:  client.selectField(options.XForwardedFor, r.Header.Get("X-Forwarded-For")),
+		Forwarded:      client.selectField(options.Forwarded, r.Header.Get("Forwarded")),
+		XRealIP:        client.selectField(options.XRealIP, r.Header.Get("X-Real-IP")),
+		UserAgent:      client.selectField(options.UserAgent, r.Header.Get("User-Agent")),
+		AcceptLanguage: client.selectField(options.AcceptLanguage, r.Header.Get("Accept-Language")),
+		Title:          options.Title,
+		Referrer:       client.selectField(options.Referrer, client.getReferrerFromHeaderOrQuery(r)),
+		ScreenWidth:    options.ScreenWidth,
+		ScreenHeight:   options.ScreenHeight,
+	}
+}
+
 func (client *Client) getReferrerFromHeaderOrQuery(r *http.Request) string {
 	referrer := r.Header.Get("Referer")
 
@@ -785,4 +789,12 @@ func (client *Client) getStatsRequestURL(endpoint string, filter *Filter) string
 
 func (client *Client) waitBeforeNextRequest(retry int) {
 	time.Sleep(time.Second * time.Duration(requestRetries-retry))
+}
+
+func (client *Client) selectField(a, b string) string {
+	if a != "" {
+		return a
+	}
+
+	return b
 }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.0
+
+* added more options to hit and event options
+
 ## 1.6.1
 
 * fixed conversion goal return type

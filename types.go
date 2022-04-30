@@ -34,6 +34,7 @@ type Hit struct {
 	XRealIP        string `json:"x_real_ip"`
 	UserAgent      string `json:"user_agent"`
 	AcceptLanguage string `json:"accept_language"`
+	Title          string `json:"title"`
 	Referrer       string `json:"referrer"`
 	ScreenWidth    int    `json:"screen_width"`
 	ScreenHeight   int    `json:"screen_height"`
