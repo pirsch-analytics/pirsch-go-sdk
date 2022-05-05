@@ -104,6 +104,7 @@ type HitOptions struct {
 // NewClient creates a new client for given client ID, client secret, hostname, and optional configuration.
 // A new client ID and secret can be generated on the Pirsch dashboard.
 // The hostname must match the hostname you configured on the Pirsch dashboard (e.g. example.com).
+// The clientID is optional when using single access tokens.
 func NewClient(clientID, clientSecret, hostname string, config *ClientConfig) *Client {
 	if config == nil {
 		config = &ClientConfig{
@@ -115,13 +116,20 @@ func NewClient(clientID, clientSecret, hostname string, config *ClientConfig) *C
 		config.BaseURL = defaultBaseURL
 	}
 
-	return &Client{
+	c := &Client{
 		baseURL:      config.BaseURL,
 		logger:       config.Logger,
 		clientID:     clientID,
 		clientSecret: clientSecret,
 		hostname:     hostname,
 	}
+
+	// single access tokens do not require to query an access token using oAuth
+	if clientID == "" {
+		c.accessToken = clientSecret
+	}
+
+	return c
 }
 
 // Hit sends a page hit to Pirsch for given http.Request.
@@ -618,7 +626,7 @@ func (client *Client) performPost(url string, body interface{}, retry int) error
 	accessToken := client.accessToken
 	client.m.RUnlock()
 
-	if retry > 0 && accessToken == "" {
+	if client.clientID != "" && retry > 0 && accessToken == "" {
 		client.waitBeforeNextRequest(retry)
 
 		if err := client.refreshToken(); err != nil {
@@ -655,7 +663,7 @@ func (client *Client) performPost(url string, body interface{}, retry int) error
 	}
 
 	// refresh access token and retry
-	if retry > 0 && resp.StatusCode != http.StatusOK {
+	if client.clientID != "" && retry > 0 && resp.StatusCode != http.StatusOK {
 		client.waitBeforeNextRequest(retry)
 
 		if err := client.refreshToken(); err != nil {
@@ -682,7 +690,7 @@ func (client *Client) performGet(url string, retry int, result interface{}) erro
 	accessToken := client.accessToken
 	client.m.RUnlock()
 
-	if retry > 0 && accessToken == "" {
+	if client.clientID != "" && retry > 0 && accessToken == "" {
 		client.waitBeforeNextRequest(retry)
 
 		if err := client.refreshToken(); err != nil {
@@ -714,7 +722,7 @@ func (client *Client) performGet(url string, retry int, result interface{}) erro
 	}
 
 	// refresh access token and retry
-	if retry > 0 && resp.StatusCode != http.StatusOK {
+	if client.clientID != "" && retry > 0 && resp.StatusCode != http.StatusOK {
 		client.waitBeforeNextRequest(retry)
 
 		if err := client.refreshToken(); err != nil {

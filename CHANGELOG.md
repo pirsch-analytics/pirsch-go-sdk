@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.1
+
+* added single access token that don't require to query an access token using oAuth
+* updated dependencies
+
 ## 1.7.0
 
 * added more options to hit and event options
