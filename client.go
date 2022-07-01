@@ -89,10 +89,6 @@ type HitOptions struct {
 	Hostname       string
 	URL            string
 	IP             string
-	CFConnectingIP string
-	XForwardedFor  string
-	Forwarded      string
-	XRealIP        string
 	UserAgent      string
 	AcceptLanguage string
 	Title          string
@@ -190,14 +186,10 @@ func (client *Client) SessionWithOptions(r *http.Request, options *HitOptions) e
 	}
 
 	return client.performPost(client.baseURL+sessionEndpoint, &Hit{
-		Hostname:       client.hostname,
-		URL:            r.URL.String(),
-		IP:             r.RemoteAddr,
-		CFConnectingIP: r.Header.Get("CF-Connecting-IP"),
-		XForwardedFor:  r.Header.Get("X-Forwarded-For"),
-		Forwarded:      r.Header.Get("Forwarded"),
-		XRealIP:        r.Header.Get("X-Real-IP"),
-		UserAgent:      r.Header.Get("User-Agent"),
+		Hostname:  client.hostname,
+		URL:       r.URL.String(),
+		IP:        r.RemoteAddr,
+		UserAgent: r.Header.Get("User-Agent"),
 	}, requestRetries)
 }
 
@@ -551,10 +543,6 @@ func (client *Client) getHit(r *http.Request, options *HitOptions) Hit {
 		Hostname:       client.selectField(options.Hostname, client.hostname),
 		URL:            client.selectField(options.URL, r.URL.String()),
 		IP:             client.selectField(options.IP, r.RemoteAddr),
-		CFConnectingIP: client.selectField(options.CFConnectingIP, r.Header.Get("CF-Connecting-IP")),
-		XForwardedFor:  client.selectField(options.XForwardedFor, r.Header.Get("X-Forwarded-For")),
-		Forwarded:      client.selectField(options.Forwarded, r.Header.Get("Forwarded")),
-		XRealIP:        client.selectField(options.XRealIP, r.Header.Get("X-Real-IP")),
 		UserAgent:      client.selectField(options.UserAgent, r.Header.Get("User-Agent")),
 		AcceptLanguage: client.selectField(options.AcceptLanguage, r.Header.Get("Accept-Language")),
 		Title:          options.Title,

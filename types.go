@@ -28,10 +28,6 @@ type Hit struct {
 	Hostname       string
 	URL            string `json:"url"`
 	IP             string `json:"ip"`
-	CFConnectingIP string `json:"cf_connecting_ip"`
-	XForwardedFor  string `json:"x_forwarded_for"`
-	Forwarded      string `json:"forwarded"`
-	XRealIP        string `json:"x_real_ip"`
 	UserAgent      string `json:"user_agent"`
 	AcceptLanguage string `json:"accept_language"`
 	Title          string `json:"title"`
