@@ -15,7 +15,10 @@ import (
 )
 
 const (
-	defaultBaseURL          = "https://api.pirsch.io"
+	defaultBaseURL        = "https://api.pirsch.io"
+	defaultTimeout        = time.Second * 5
+	defaultRequestRetries = 5
+
 	authenticationEndpoint  = "/api/v1/token"
 	hitEndpoint             = "/api/v1/hit"
 	eventEndpoint           = "/api/v1/event"
@@ -51,7 +54,6 @@ const (
 	platformEndpoint        = "/api/v1/statistics/platform"
 	screenEndpoint          = "/api/v1/statistics/screen"
 	keywordsEndpoint        = "/api/v1/statistics/keywords"
-	requestRetries          = 5
 )
 
 var referrerQueryParams = []string{
@@ -64,14 +66,15 @@ var referrerQueryParams = []string{
 
 // Client is used to access the Pirsch API.
 type Client struct {
-	baseURL      string
-	logger       *log.Logger
-	clientID     string
-	clientSecret string
-	hostname     string
-	accessToken  string
-	expiresAt    time.Time
-	m            sync.RWMutex
+	baseURL        string
+	logger         *log.Logger
+	clientID       string
+	clientSecret   string
+	accessToken    string
+	expiresAt      time.Time
+	timeout        time.Duration
+	requestRetries int
+	m              sync.RWMutex
 }
 
 // ClientConfig is used to configure the Client.
@@ -80,13 +83,18 @@ type ClientConfig struct {
 	// This is usually left empty in production environments.
 	BaseURL string
 
+	// Timeout is the timeout for HTTP requests. 5 seconds by default.
+	Timeout time.Duration
+
+	// RequestRetries sets the maximum number of requests before an error is returned. 5 retries by default.
+	RequestRetries int
+
 	// Logger is an optional logger for debugging.
 	Logger *log.Logger
 }
 
 // HitOptions optional parameters to send with the hit request.
 type HitOptions struct {
-	Hostname       string
 	URL            string
 	IP             string
 	UserAgent      string
@@ -101,7 +109,7 @@ type HitOptions struct {
 // A new client ID and secret can be generated on the Pirsch dashboard.
 // The hostname must match the hostname you configured on the Pirsch dashboard (e.g. example.com).
 // The clientID is optional when using single access tokens.
-func NewClient(clientID, clientSecret, hostname string, config *ClientConfig) *Client {
+func NewClient(clientID, clientSecret string, config *ClientConfig) *Client {
 	if config == nil {
 		config = &ClientConfig{
 			BaseURL: defaultBaseURL,
@@ -112,12 +120,21 @@ func NewClient(clientID, clientSecret, hostname string, config *ClientConfig) *C
 		config.BaseURL = defaultBaseURL
 	}
 
+	if config.Timeout <= 0 {
+		config.Timeout = defaultTimeout
+	}
+
+	if config.RequestRetries <= 0 {
+		config.RequestRetries = defaultRequestRetries
+	}
+
 	c := &Client{
-		baseURL:      config.BaseURL,
-		logger:       config.Logger,
-		clientID:     clientID,
-		clientSecret: clientSecret,
-		hostname:     hostname,
+		baseURL:        config.BaseURL,
+		logger:         config.Logger,
+		clientID:       clientID,
+		clientSecret:   clientSecret,
+		timeout:        config.Timeout,
+		requestRetries: config.RequestRetries,
 	}
 
 	// single access tokens do not require to query an access token using oAuth
@@ -144,7 +161,7 @@ func (client *Client) HitWithOptions(r *http.Request, options *HitOptions) error
 	}
 
 	hit := client.getHit(r, options)
-	return client.performPost(client.baseURL+hitEndpoint, &hit, requestRetries)
+	return client.performPost(client.baseURL+hitEndpoint, &hit, client.requestRetries)
 }
 
 // Event sends an event to Pirsch for given http.Request.
@@ -167,7 +184,7 @@ func (client *Client) EventWithOptions(name string, durationSeconds int, meta ma
 		DurationSeconds: durationSeconds,
 		Metadata:        meta,
 		Hit:             client.getHit(r, options),
-	}, requestRetries)
+	}, client.requestRetries)
 }
 
 // Session keeps a session alive for the given http.Request.
@@ -186,18 +203,17 @@ func (client *Client) SessionWithOptions(r *http.Request, options *HitOptions) e
 	}
 
 	return client.performPost(client.baseURL+sessionEndpoint, &Hit{
-		Hostname:  client.hostname,
 		URL:       r.URL.String(),
 		IP:        r.RemoteAddr,
 		UserAgent: r.Header.Get("User-Agent"),
-	}, requestRetries)
+	}, client.requestRetries)
 }
 
 // Domain returns the domain for this client.
 func (client *Client) Domain() (*Domain, error) {
 	domains := make([]Domain, 0, 1)
 
-	if err := client.performGet(client.baseURL+domainEndpoint, requestRetries, &domains); err != nil {
+	if err := client.performGet(client.baseURL+domainEndpoint, client.requestRetries, &domains); err != nil {
 		return nil, err
 	}
 
@@ -212,7 +228,7 @@ func (client *Client) Domain() (*Domain, error) {
 func (client *Client) SessionDuration(filter *Filter) ([]TimeSpentStats, error) {
 	stats := make([]TimeSpentStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(sessionDurationEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(sessionDurationEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -223,7 +239,7 @@ func (client *Client) SessionDuration(filter *Filter) ([]TimeSpentStats, error) 
 func (client *Client) TimeOnPage(filter *Filter) ([]TimeSpentStats, error) {
 	stats := make([]TimeSpentStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(timeOnPageEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(timeOnPageEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -234,7 +250,7 @@ func (client *Client) TimeOnPage(filter *Filter) ([]TimeSpentStats, error) {
 func (client *Client) UTMSource(filter *Filter) ([]UTMSourceStats, error) {
 	stats := make([]UTMSourceStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(utmSourceEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(utmSourceEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -245,7 +261,7 @@ func (client *Client) UTMSource(filter *Filter) ([]UTMSourceStats, error) {
 func (client *Client) UTMMedium(filter *Filter) ([]UTMMediumStats, error) {
 	stats := make([]UTMMediumStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(utmMediumEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(utmMediumEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -256,7 +272,7 @@ func (client *Client) UTMMedium(filter *Filter) ([]UTMMediumStats, error) {
 func (client *Client) UTMCampaign(filter *Filter) ([]UTMCampaignStats, error) {
 	stats := make([]UTMCampaignStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(utmCampaignEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(utmCampaignEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -267,7 +283,7 @@ func (client *Client) UTMCampaign(filter *Filter) ([]UTMCampaignStats, error) {
 func (client *Client) UTMContent(filter *Filter) ([]UTMContentStats, error) {
 	stats := make([]UTMContentStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(utmContentEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(utmContentEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -278,7 +294,7 @@ func (client *Client) UTMContent(filter *Filter) ([]UTMContentStats, error) {
 func (client *Client) UTMTerm(filter *Filter) ([]UTMTermStats, error) {
 	stats := make([]UTMTermStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(utmTermEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(utmTermEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -289,7 +305,7 @@ func (client *Client) UTMTerm(filter *Filter) ([]UTMTermStats, error) {
 func (client *Client) TotalVisitors(filter *Filter) (*TotalVisitorStats, error) {
 	stats := new(TotalVisitorStats)
 
-	if err := client.performGet(client.getStatsRequestURL(totalVisitorsEndpoint, filter), requestRetries, stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(totalVisitorsEndpoint, filter), client.requestRetries, stats); err != nil {
 		return nil, err
 	}
 
@@ -300,7 +316,7 @@ func (client *Client) TotalVisitors(filter *Filter) (*TotalVisitorStats, error) 
 func (client *Client) Visitors(filter *Filter) ([]VisitorStats, error) {
 	stats := make([]VisitorStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(visitorsEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(visitorsEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -311,7 +327,7 @@ func (client *Client) Visitors(filter *Filter) ([]VisitorStats, error) {
 func (client *Client) Pages(filter *Filter) ([]PageStats, error) {
 	stats := make([]PageStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(pagesEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(pagesEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -322,7 +338,7 @@ func (client *Client) Pages(filter *Filter) ([]PageStats, error) {
 func (client *Client) EntryPages(filter *Filter) ([]EntryStats, error) {
 	stats := make([]EntryStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(entryPagesEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(entryPagesEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -333,7 +349,7 @@ func (client *Client) EntryPages(filter *Filter) ([]EntryStats, error) {
 func (client *Client) ExitPages(filter *Filter) ([]ExitStats, error) {
 	stats := make([]ExitStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(exitPagesEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(exitPagesEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -344,7 +360,7 @@ func (client *Client) ExitPages(filter *Filter) ([]ExitStats, error) {
 func (client *Client) ConversionGoals(filter *Filter) ([]ConversionGoal, error) {
 	stats := make([]ConversionGoal, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(conversionGoalsEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(conversionGoalsEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -355,7 +371,7 @@ func (client *Client) ConversionGoals(filter *Filter) ([]ConversionGoal, error) 
 func (client *Client) Events(filter *Filter) ([]EventStats, error) {
 	stats := make([]EventStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(eventsEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(eventsEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -366,7 +382,7 @@ func (client *Client) Events(filter *Filter) ([]EventStats, error) {
 func (client *Client) EventMetadata(filter *Filter) ([]EventStats, error) {
 	stats := make([]EventStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(eventMetadataEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(eventMetadataEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -377,7 +393,7 @@ func (client *Client) EventMetadata(filter *Filter) ([]EventStats, error) {
 func (client *Client) ListEvents(filter *Filter) ([]EventListStats, error) {
 	stats := make([]EventListStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(listEventsEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(listEventsEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -388,7 +404,7 @@ func (client *Client) ListEvents(filter *Filter) ([]EventListStats, error) {
 func (client *Client) Growth(filter *Filter) (*Growth, error) {
 	growth := new(Growth)
 
-	if err := client.performGet(client.getStatsRequestURL(growthRateEndpoint, filter), requestRetries, growth); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(growthRateEndpoint, filter), client.requestRetries, growth); err != nil {
 		return nil, err
 	}
 
@@ -399,7 +415,7 @@ func (client *Client) Growth(filter *Filter) (*Growth, error) {
 func (client *Client) ActiveVisitors(filter *Filter) (*ActiveVisitorsData, error) {
 	active := new(ActiveVisitorsData)
 
-	if err := client.performGet(client.getStatsRequestURL(activeVisitorsEndpoint, filter), requestRetries, active); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(activeVisitorsEndpoint, filter), client.requestRetries, active); err != nil {
 		return nil, err
 	}
 
@@ -410,7 +426,7 @@ func (client *Client) ActiveVisitors(filter *Filter) (*ActiveVisitorsData, error
 func (client *Client) TimeOfDay(filter *Filter) ([]VisitorHourStats, error) {
 	stats := make([]VisitorHourStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(timeOfDayEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(timeOfDayEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -421,7 +437,7 @@ func (client *Client) TimeOfDay(filter *Filter) ([]VisitorHourStats, error) {
 func (client *Client) Languages(filter *Filter) ([]LanguageStats, error) {
 	stats := make([]LanguageStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(languageEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(languageEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -432,7 +448,7 @@ func (client *Client) Languages(filter *Filter) ([]LanguageStats, error) {
 func (client *Client) Referrer(filter *Filter) ([]ReferrerStats, error) {
 	stats := make([]ReferrerStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(referrerEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(referrerEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -443,7 +459,7 @@ func (client *Client) Referrer(filter *Filter) ([]ReferrerStats, error) {
 func (client *Client) OS(filter *Filter) ([]OSStats, error) {
 	stats := make([]OSStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(osEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(osEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -454,7 +470,7 @@ func (client *Client) OS(filter *Filter) ([]OSStats, error) {
 func (client *Client) OSVersions(filter *Filter) ([]OSVersionStats, error) {
 	stats := make([]OSVersionStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(osVersionEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(osVersionEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -465,7 +481,7 @@ func (client *Client) OSVersions(filter *Filter) ([]OSVersionStats, error) {
 func (client *Client) Browser(filter *Filter) ([]BrowserStats, error) {
 	stats := make([]BrowserStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(browserEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(browserEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -476,7 +492,7 @@ func (client *Client) Browser(filter *Filter) ([]BrowserStats, error) {
 func (client *Client) BrowserVersions(filter *Filter) ([]BrowserVersionStats, error) {
 	stats := make([]BrowserVersionStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(browserVersionEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(browserVersionEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -487,7 +503,7 @@ func (client *Client) BrowserVersions(filter *Filter) ([]BrowserVersionStats, er
 func (client *Client) Country(filter *Filter) ([]CountryStats, error) {
 	stats := make([]CountryStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(countryEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(countryEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -498,7 +514,7 @@ func (client *Client) Country(filter *Filter) ([]CountryStats, error) {
 func (client *Client) City(filter *Filter) ([]CityStats, error) {
 	stats := make([]CityStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(cityEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(cityEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -509,7 +525,7 @@ func (client *Client) City(filter *Filter) ([]CityStats, error) {
 func (client *Client) Platform(filter *Filter) (*PlatformStats, error) {
 	platforms := new(PlatformStats)
 
-	if err := client.performGet(client.getStatsRequestURL(platformEndpoint, filter), requestRetries, platforms); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(platformEndpoint, filter), client.requestRetries, platforms); err != nil {
 		return nil, err
 	}
 
@@ -520,7 +536,7 @@ func (client *Client) Platform(filter *Filter) (*PlatformStats, error) {
 func (client *Client) Screen(filter *Filter) ([]ScreenClassStats, error) {
 	stats := make([]ScreenClassStats, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(screenEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(screenEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -531,7 +547,7 @@ func (client *Client) Screen(filter *Filter) ([]ScreenClassStats, error) {
 func (client *Client) Keywords(filter *Filter) ([]Keyword, error) {
 	stats := make([]Keyword, 0)
 
-	if err := client.performGet(client.getStatsRequestURL(keywordsEndpoint, filter), requestRetries, &stats); err != nil {
+	if err := client.performGet(client.getStatsRequestURL(keywordsEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
@@ -540,7 +556,6 @@ func (client *Client) Keywords(filter *Filter) ([]Keyword, error) {
 
 func (client *Client) getHit(r *http.Request, options *HitOptions) Hit {
 	return Hit{
-		Hostname:       client.selectField(options.Hostname, client.hostname),
 		URL:            client.selectField(options.URL, r.URL.String()),
 		IP:             client.selectField(options.IP, r.RemoteAddr),
 		UserAgent:      client.selectField(options.UserAgent, r.Header.Get("User-Agent")),
@@ -586,7 +601,7 @@ func (client *Client) refreshToken() error {
 		return err
 	}
 
-	c := http.Client{}
+	c := client.getHTTPClient()
 	resp, err := c.Post(client.baseURL+authenticationEndpoint, "application/json", bytes.NewBuffer(bodyJson))
 
 	if err != nil {
@@ -622,7 +637,7 @@ func (client *Client) performPost(url string, body interface{}, retry int) error
 				client.logger.Printf("error refreshing token: %s", err)
 			}
 
-			return errors.New(fmt.Sprintf("error refreshing token (attempt %d/%d): %s", requestRetries-retry, requestRetries, err))
+			return errors.New(fmt.Sprintf("error refreshing token (attempt %d/%d): %s", client.requestRetries-retry, client.requestRetries, err))
 		}
 
 		return client.performPost(url, body, retry-1)
@@ -643,7 +658,7 @@ func (client *Client) performPost(url string, body interface{}, retry int) error
 	client.m.RLock()
 	req.Header.Set("Authorization", "Bearer "+client.accessToken)
 	client.m.RUnlock()
-	c := http.Client{}
+	c := client.getHTTPClient()
 	resp, err := c.Do(req)
 
 	if err != nil {
@@ -659,7 +674,7 @@ func (client *Client) performPost(url string, body interface{}, retry int) error
 				client.logger.Printf("error refreshing token: %s", err)
 			}
 
-			return errors.New(fmt.Sprintf("error refreshing token (attempt %d/%d): %s", requestRetries-retry, requestRetries, err))
+			return errors.New(fmt.Sprintf("error refreshing token (attempt %d/%d): %s", client.requestRetries-retry, client.requestRetries, err))
 		}
 
 		return client.performPost(url, body, retry-1)
@@ -686,7 +701,7 @@ func (client *Client) performGet(url string, retry int, result interface{}) erro
 				client.logger.Printf("error refreshing token: %s", err)
 			}
 
-			return errors.New(fmt.Sprintf("error refreshing token (attempt %d/%d): %s", requestRetries-retry, requestRetries, err))
+			return errors.New(fmt.Sprintf("error refreshing token (attempt %d/%d): %s", client.requestRetries-retry, client.requestRetries, err))
 		}
 
 		return client.performGet(url, retry-1, result)
@@ -702,7 +717,7 @@ func (client *Client) performGet(url string, retry int, result interface{}) erro
 	req.Header.Set("Authorization", "Bearer "+client.accessToken)
 	client.m.RUnlock()
 	req.Header.Set("Content-Type", "application/json")
-	c := http.Client{}
+	c := client.getHTTPClient()
 	resp, err := c.Do(req)
 
 	if err != nil {
@@ -718,7 +733,7 @@ func (client *Client) performGet(url string, retry int, result interface{}) erro
 				client.logger.Printf("error refreshing token: %s", err)
 			}
 
-			return errors.New(fmt.Sprintf("error refreshing token (attempt %d/%d): %s", requestRetries-retry, requestRetries, err))
+			return errors.New(fmt.Sprintf("error refreshing token (attempt %d/%d): %s", client.requestRetries-retry, client.requestRetries, err))
 		}
 
 		return client.performGet(url, retry-1, result)
@@ -736,6 +751,12 @@ func (client *Client) performGet(url string, retry int, result interface{}) erro
 	}
 
 	return nil
+}
+
+func (client *Client) getHTTPClient() http.Client {
+	return http.Client{
+		Timeout: client.timeout,
+	}
 }
 
 func (client *Client) requestError(url string, statusCode int, body string) error {
@@ -784,7 +805,7 @@ func (client *Client) getStatsRequestURL(endpoint string, filter *Filter) string
 }
 
 func (client *Client) waitBeforeNextRequest(retry int) {
-	time.Sleep(time.Second * time.Duration(requestRetries-retry))
+	time.Sleep(time.Second * time.Duration(client.requestRetries-retry+1))
 }
 
 func (client *Client) selectField(a, b string) string {

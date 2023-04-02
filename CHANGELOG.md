@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.9.0
+
+* added configuration options for request timeout and retries
+* set default timeout to 5 seconds
+* wait at least one second before retrying a request
+* removed hostname from configuration
+* upgraded to Go 1.20
+* updated dependencies
+
 ## 1.8.0
 
 * removed IP headers

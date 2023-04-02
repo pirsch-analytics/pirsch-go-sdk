@@ -10,7 +10,7 @@ import (
 )
 
 func TestGetReferrerFromHeaderOrQuery(t *testing.T) {
-	client := NewClient("", "", "", nil)
+	client := NewClient("", "", nil)
 	req := httptest.NewRequest(http.MethodPost, "https://example.com/", nil)
 	req.Header.Add("Referer", "header")
 	assert.Equal(t, "header", client.getReferrerFromHeaderOrQuery(req))
@@ -29,16 +29,14 @@ func TestGetReferrerFromHeaderOrQuery(t *testing.T) {
 func TestNewClient(t *testing.T) {
 	clientID := os.Getenv("PIRSCH_CLIENT_ID")
 	clientSecret := os.Getenv("PIRSCH_CLIENT_SECRET")
-	clientHostname := os.Getenv("PIRSCH_HOSTNAME")
 	baseURL := os.Getenv("PIRSCH_BASE_URL")
 
-	if clientID != "" && clientSecret != "" && clientHostname != "" {
-		client := NewClient(clientID, clientSecret, clientHostname, &ClientConfig{
+	if clientID != "" && clientSecret != "" {
+		client := NewClient(clientID, clientSecret, &ClientConfig{
 			BaseURL: baseURL,
 		})
 		d, err := client.Domain()
 		assert.NoError(t, err)
 		assert.NotNil(t, d)
-		assert.Equal(t, clientHostname, d.Hostname)
 	}
 }
