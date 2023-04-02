@@ -12,16 +12,15 @@ import (
 const (
 	// Client ID, secret, and hostname.
 	// Replace them with your own.
-	clientID     = "2zH9LVKwEHv9nCK8Nr81HHeLF9Olz2ip"
-	clientSecret = "8BhHk3GBvUdgWhdQygqzxRDZKTYadh8URARmSFxqlhDiWPPRT0ycWOi7kdejpZHY"
-	hostname     = "pirsch.io"
+	clientID     = ""
+	clientSecret = ""
 )
 
 func main() {
 	log.Println("Visit http://localhost:1414")
 
 	// Create a client for Pirsch.
-	client := pirsch.NewClient(clientID, clientSecret, hostname, &pirsch.ClientConfig{
+	client := pirsch.NewClient(clientID, clientSecret, &pirsch.ClientConfig{
 		Logger:  log.New(os.Stdout, "", 0),
 		BaseURL: "http://localhost.com:9999",
 	})
