@@ -1,4 +1,4 @@
-package pirsch
+package pkg
 
 import (
 	"github.com/emvi/null"
@@ -23,23 +23,29 @@ const (
 // Use one of the constants ScaleDay, ScaleWeek, ScaleMonth, ScaleYear.
 type Scale string
 
-// Hit are the parameters to send a page hit to Pirsch.
-type Hit struct {
-	Hostname       string
-	URL            string `json:"url"`
-	IP             string `json:"ip"`
-	UserAgent      string `json:"user_agent"`
-	AcceptLanguage string `json:"accept_language"`
-	Title          string `json:"title"`
-	Referrer       string `json:"referrer"`
-	ScreenWidth    int    `json:"screen_width"`
-	ScreenHeight   int    `json:"screen_height"`
+// PageView are the parameters to send a page hit to Pirsch.
+type PageView struct {
+	Hostname               string
+	URL                    string `json:"url"`
+	IP                     string `json:"ip"`
+	UserAgent              string `json:"user_agent"`
+	AcceptLanguage         string `json:"accept_language"`
+	SecCHUA                string `json:"sec_ch_ua"`
+	SecCHUAMobile          string `json:"sec_ch_ua_mobile"`
+	SecCHUAPlatform        string `json:"sec_ch_ua_platform"`
+	SecCHUAPlatformVersion string `json:"sec_ch_ua_platform_version"`
+	SecCHWidth             string `json:"sec_ch_width"`
+	SecCHViewportWidth     string `json:"sec_ch_viewport_width"`
+	Title                  string `json:"title"`
+	Referrer               string `json:"referrer"`
+	ScreenWidth            int    `json:"screen_width"`
+	ScreenHeight           int    `json:"screen_height"`
 }
 
 // Event represents a single data point for custom events.
-// It's basically the same as Hit, but with some additional fields (event name, time, and meta fields).
+// It's basically the same as PageView, but with some additional fields (event name, time, and meta fields).
 type Event struct {
-	Hit
+	PageView
 	Name            string            `json:"event_name"`
 	DurationSeconds int               `json:"event_duration"`
 	Metadata        map[string]string `json:"event_meta"`

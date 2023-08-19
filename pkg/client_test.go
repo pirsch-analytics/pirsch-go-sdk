@@ -1,4 +1,4 @@
-package pirsch
+package pkg
 
 import (
 	"fmt"

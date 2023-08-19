@@ -1,4 +1,4 @@
-package pirsch
+package pkg
 
 import (
 	"bytes"
@@ -6,9 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -67,7 +68,7 @@ var referrerQueryParams = []string{
 // Client is used to access the Pirsch API.
 type Client struct {
 	baseURL        string
-	logger         *log.Logger
+	logger         *slog.Logger
 	clientID       string
 	clientSecret   string
 	accessToken    string
@@ -90,19 +91,25 @@ type ClientConfig struct {
 	RequestRetries int
 
 	// Logger is an optional logger for debugging.
-	Logger *log.Logger
+	Logger slog.Handler
 }
 
-// HitOptions optional parameters to send with the hit request.
-type HitOptions struct {
-	URL            string
-	IP             string
-	UserAgent      string
-	AcceptLanguage string
-	Title          string
-	Referrer       string
-	ScreenWidth    int
-	ScreenHeight   int
+// PageViewOptions optional parameters to send with the hit request.
+type PageViewOptions struct {
+	URL                    string
+	IP                     string
+	UserAgent              string
+	AcceptLanguage         string
+	SecCHUA                string
+	SecCHUAMobile          string
+	SecCHUAPlatform        string
+	SecCHUAPlatformVersion string
+	SecCHWidth             string
+	SecCHViewportWidth     string
+	Title                  string
+	Referrer               string
+	ScreenWidth            int
+	ScreenHeight           int
 }
 
 // NewClient creates a new client for given client ID, client secret, hostname, and optional configuration.
@@ -128,9 +135,13 @@ func NewClient(clientID, clientSecret string, config *ClientConfig) *Client {
 		config.RequestRetries = defaultRequestRetries
 	}
 
+	if config.Logger == nil {
+		config.Logger = slog.NewTextHandler(os.Stderr, nil)
+	}
+
 	c := &Client{
 		baseURL:        config.BaseURL,
-		logger:         config.Logger,
+		logger:         slog.New(config.Logger),
 		clientID:       clientID,
 		clientSecret:   clientSecret,
 		timeout:        config.Timeout,
@@ -145,67 +156,54 @@ func NewClient(clientID, clientSecret string, config *ClientConfig) *Client {
 	return c
 }
 
-// Hit sends a page hit to Pirsch for given http.Request.
-func (client *Client) Hit(r *http.Request) error {
-	return client.HitWithOptions(r, nil)
-}
-
-// HitWithOptions sends a page hit to Pirsch for given http.Request and options.
-func (client *Client) HitWithOptions(r *http.Request, options *HitOptions) error {
-	if r.Header.Get("DNT") == "1" {
-		return nil
-	}
-
+// PageView sends a page hit to Pirsch for given http.Request and options.
+func (client *Client) PageView(r *http.Request, options *PageViewOptions) error {
 	if options == nil {
-		options = new(HitOptions)
+		options = new(PageViewOptions)
 	}
 
-	hit := client.getHit(r, options)
+	hit := client.getPageViewData(r, options)
 	return client.performPost(client.baseURL+hitEndpoint, &hit, client.requestRetries)
 }
 
-// Event sends an event to Pirsch for given http.Request.
-func (client *Client) Event(name string, durationSeconds int, meta map[string]string, r *http.Request) error {
-	return client.EventWithOptions(name, durationSeconds, meta, r, nil)
-}
-
-// EventWithOptions sends an event to Pirsch for given http.Request and options.
-func (client *Client) EventWithOptions(name string, durationSeconds int, meta map[string]string, r *http.Request, options *HitOptions) error {
+// Event sends an event to Pirsch for given http.Request and options.
+func (client *Client) Event(name string, durationSeconds int, meta map[string]string, r *http.Request, options *PageViewOptions) error {
 	if r.Header.Get("DNT") == "1" {
 		return nil
 	}
 
 	if options == nil {
-		options = new(HitOptions)
+		options = new(PageViewOptions)
 	}
 
 	return client.performPost(client.baseURL+eventEndpoint, &Event{
 		Name:            name,
 		DurationSeconds: durationSeconds,
 		Metadata:        meta,
-		Hit:             client.getHit(r, options),
+		PageView:        client.getPageViewData(r, options),
 	}, client.requestRetries)
 }
 
-// Session keeps a session alive for the given http.Request.
-func (client *Client) Session(r *http.Request) error {
-	return client.HitWithOptions(r, nil)
-}
-
-// SessionWithOptions keeps a session alive for the given http.Request and options.
-func (client *Client) SessionWithOptions(r *http.Request, options *HitOptions) error {
+// Session keeps a session alive for the given http.Request and options.
+func (client *Client) Session(r *http.Request, options *PageViewOptions) error {
 	if r.Header.Get("DNT") == "1" {
 		return nil
 	}
 
 	if options == nil {
-		options = new(HitOptions)
+		options = new(PageViewOptions)
 	}
 
-	return client.performPost(client.baseURL+sessionEndpoint, &Hit{
-		URL:       r.URL.String(),
-		IP:        r.RemoteAddr,
-		UserAgent: r.Header.Get("User-Agent"),
+	return client.performPost(client.baseURL+sessionEndpoint, &PageView{
+		URL:                    r.URL.String(),
+		IP:                     client.selectField(options.IP, r.RemoteAddr),
+		UserAgent:              client.selectField(options.UserAgent, r.Header.Get("User-Agent")),
+		SecCHUA:                client.selectField(options.SecCHUA, r.Header.Get("Sec-CH-UA")),
+		SecCHUAMobile:          client.selectField(options.SecCHUAMobile, r.Header.Get("Sec-CH-UA-Mobile")),
+		SecCHUAPlatform:        client.selectField(options.SecCHUAPlatform, r.Header.Get("Sec-CH-UA-Platform")),
+		SecCHUAPlatformVersion: client.selectField(options.SecCHUAPlatformVersion, r.Header.Get("Sec-CH-UA-Platform-Version")),
+		SecCHWidth:             client.selectField(options.SecCHWidth, r.Header.Get("Sec-CH-Width")),
+		SecCHViewportWidth:     client.selectField(options.SecCHViewportWidth, r.Header.Get("Sec-CH-Viewport-Width")),
 	}, client.requestRetries)
 }
 
@@ -554,16 +552,22 @@ func (client *Client) Keywords(filter *Filter) ([]Keyword, error) {
 	return stats, nil
 }
 
-func (client *Client) getHit(r *http.Request, options *HitOptions) Hit {
-	return Hit{
-		URL:            client.selectField(options.URL, r.URL.String()),
-		IP:             client.selectField(options.IP, r.RemoteAddr),
-		UserAgent:      client.selectField(options.UserAgent, r.Header.Get("User-Agent")),
-		AcceptLanguage: client.selectField(options.AcceptLanguage, r.Header.Get("Accept-Language")),
-		Title:          options.Title,
-		Referrer:       client.selectField(options.Referrer, client.getReferrerFromHeaderOrQuery(r)),
-		ScreenWidth:    options.ScreenWidth,
-		ScreenHeight:   options.ScreenHeight,
+func (client *Client) getPageViewData(r *http.Request, options *PageViewOptions) PageView {
+	return PageView{
+		URL:                    client.selectField(options.URL, r.URL.String()),
+		IP:                     client.selectField(options.IP, r.RemoteAddr),
+		UserAgent:              client.selectField(options.UserAgent, r.Header.Get("User-Agent")),
+		AcceptLanguage:         client.selectField(options.AcceptLanguage, r.Header.Get("Accept-Language")),
+		SecCHUA:                client.selectField(options.SecCHUA, r.Header.Get("Sec-CH-UA")),
+		SecCHUAMobile:          client.selectField(options.SecCHUAMobile, r.Header.Get("Sec-CH-UA-Mobile")),
+		SecCHUAPlatform:        client.selectField(options.SecCHUAPlatform, r.Header.Get("Sec-CH-UA-Platform")),
+		SecCHUAPlatformVersion: client.selectField(options.SecCHUAPlatformVersion, r.Header.Get("Sec-CH-UA-Platform-Version")),
+		SecCHWidth:             client.selectField(options.SecCHWidth, r.Header.Get("Sec-CH-Width")),
+		SecCHViewportWidth:     client.selectField(options.SecCHViewportWidth, r.Header.Get("Sec-CH-Viewport-Width")),
+		Title:                  options.Title,
+		Referrer:               client.selectField(options.Referrer, client.getReferrerFromHeaderOrQuery(r)),
+		ScreenWidth:            options.ScreenWidth,
+		ScreenHeight:           options.ScreenHeight,
 	}
 }
 
@@ -634,7 +638,7 @@ func (client *Client) performPost(url string, body interface{}, retry int) error
 
 		if err := client.refreshToken(); err != nil {
 			if client.logger != nil {
-				client.logger.Printf("error refreshing token: %s", err)
+				client.logger.Error("error refreshing token", "err", err)
 			}
 
 			return errors.New(fmt.Sprintf("error refreshing token (attempt %d/%d): %s", client.requestRetries-retry, client.requestRetries, err))
@@ -671,7 +675,7 @@ func (client *Client) performPost(url string, body interface{}, retry int) error
 
 		if err := client.refreshToken(); err != nil {
 			if client.logger != nil {
-				client.logger.Printf("error refreshing token: %s", err)
+				client.logger.Error("error refreshing token", "err", err)
 			}
 
 			return errors.New(fmt.Sprintf("error refreshing token (attempt %d/%d): %s", client.requestRetries-retry, client.requestRetries, err))
@@ -698,7 +702,7 @@ func (client *Client) performGet(url string, retry int, result interface{}) erro
 
 		if err := client.refreshToken(); err != nil {
 			if client.logger != nil {
-				client.logger.Printf("error refreshing token: %s", err)
+				client.logger.Error("error refreshing token", "err", err)
 			}
 
 			return errors.New(fmt.Sprintf("error refreshing token (attempt %d/%d): %s", client.requestRetries-retry, client.requestRetries, err))
@@ -730,7 +734,7 @@ func (client *Client) performGet(url string, retry int, result interface{}) erro
 
 		if err := client.refreshToken(); err != nil {
 			if client.logger != nil {
-				client.logger.Printf("error refreshing token: %s", err)
+				client.logger.Error("error refreshing token", "err", err)
 			}
 
 			return errors.New(fmt.Sprintf("error refreshing token (attempt %d/%d): %s", client.requestRetries-retry, client.requestRetries, err))

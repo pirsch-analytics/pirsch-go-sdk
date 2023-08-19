@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.0
+
+* added optional client hint headers
+* added structured logging using `log/slog`
+* removed DNT
+* changed package structure
+* fixed options to extend sessions
+* upgraded Go version to 1.21
+* updated dependencies
+
 ## 1.9.0
 
 * added configuration options for request timeout and retries
