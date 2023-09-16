@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.0
+
+* added new conversion rate and custom metric fields
+* added missing event meta, timezone, offset, sort, direction, and search fields in filter
+* removed screen_width and screen_height from filter
+
 ## 2.0.0
 
 * added optional client hint headers

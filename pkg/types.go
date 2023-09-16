@@ -17,11 +17,21 @@ const (
 
 	// ScaleYear groups results by year.
 	ScaleYear = "year"
+
+	// CustomMetricTypeInteger sets the custom metric type to integer.
+	CustomMetricTypeInteger = "integer"
+
+	// CustomMetricTypeFloat sets the custom metric type to float.
+	CustomMetricTypeFloat = "float"
 )
 
 // Scale is used to group results in the Filter.
 // Use one of the constants ScaleDay, ScaleWeek, ScaleMonth, ScaleYear.
 type Scale string
+
+// CustomMetricType is used to set the type for a custom metric in the Filter.
+// Use one of the constants CustomMetricTypeInteger or CustomMetricTypeFloat.
+type CustomMetricType string
 
 // PageView are the parameters to send a page hit to Pirsch.
 type PageView struct {
@@ -54,35 +64,41 @@ type Event struct {
 // Filter is used to filter statistics.
 // DomainID, From, and To are required dates (the time is ignored).
 type Filter struct {
-	DomainID             string    `json:"id"`
-	From                 time.Time `json:"from"`
-	To                   time.Time `json:"to"`
-	Start                int       `json:"start,omitempty"`
-	Scale                Scale     `json:"scale,omitempty"`
-	Path                 string    `json:"path,omitempty"`
-	Pattern              string    `json:"pattern,omitempty"`
-	EntryPath            string    `json:"entry_path,omitempty"`
-	ExitPath             string    `json:"exit_path,omitempty"`
-	Event                string    `json:"event,omitempty"`
-	EventMetaKey         string    `json:"event_meta_key,omitempty"`
-	Language             string    `json:"language,omitempty"`
-	Country              string    `json:"country,omitempty"`
-	City                 string    `json:"city,omitempty"`
-	Referrer             string    `json:"referrer,omitempty"`
-	ReferrerName         string    `json:"referrer_name,omitempty"`
-	OS                   string    `json:"os,omitempty"`
-	Browser              string    `json:"browser,omitempty"`
-	Platform             string    `json:"platform,omitempty"`
-	ScreenClass          string    `json:"screen_class,omitempty"`
-	ScreenWidth          string    `json:"screen_width,omitempty"`
-	ScreenHeight         string    `json:"screen_height,omitempty"`
-	UTMSource            string    `json:"utm_source,omitempty"`
-	UTMMedium            string    `json:"utm_medium,omitempty"`
-	UTMCampaign          string    `json:"utm_campaign,omitempty"`
-	UTMContent           string    `json:"utm_content,omitempty"`
-	UTMTerm              string    `json:"utm_term,omitempty"`
-	Limit                int       `json:"limit,omitempty"`
-	IncludeAvgTimeOnPage bool      `json:"include_avg_time_on_page,omitempty"`
+	DomainID             string            `json:"id"`
+	From                 time.Time         `json:"from"`
+	To                   time.Time         `json:"to"`
+	Start                int               `json:"start,omitempty"`
+	Scale                Scale             `json:"scale,omitempty"`
+	Timezone             string            `json:"tz,omitempty"`
+	Path                 string            `json:"path,omitempty"`
+	Pattern              string            `json:"pattern,omitempty"`
+	EntryPath            string            `json:"entry_path,omitempty"`
+	ExitPath             string            `json:"exit_path,omitempty"`
+	Event                string            `json:"event,omitempty"`
+	EventMetaKey         string            `json:"event_meta_key,omitempty"`
+	EventMeta            map[string]string `json:"-"`
+	Language             string            `json:"language,omitempty"`
+	Country              string            `json:"country,omitempty"`
+	City                 string            `json:"city,omitempty"`
+	Referrer             string            `json:"referrer,omitempty"`
+	ReferrerName         string            `json:"referrer_name,omitempty"`
+	OS                   string            `json:"os,omitempty"`
+	Browser              string            `json:"browser,omitempty"`
+	Platform             string            `json:"platform,omitempty"`
+	ScreenClass          string            `json:"screen_class,omitempty"`
+	UTMSource            string            `json:"utm_source,omitempty"`
+	UTMMedium            string            `json:"utm_medium,omitempty"`
+	UTMCampaign          string            `json:"utm_campaign,omitempty"`
+	UTMContent           string            `json:"utm_content,omitempty"`
+	UTMTerm              string            `json:"utm_term,omitempty"`
+	CustomMetricKey      string            `json:"custom_metric_key,omitempty"`
+	CustomMetricType     CustomMetricType  `json:"custom_metric_type,omitempty"`
+	IncludeAvgTimeOnPage bool              `json:"include_avg_time_on_page,omitempty"`
+	Offset               int               `json:"offset,omitempty"`
+	Limit                int               `json:"limit,omitempty"`
+	Sort                 string            `json:"sort,omitempty"`
+	Direction            string            `json:"direction,omitempty"`
+	Search               string            `json:"search,omitempty"`
 }
 
 // BaseEntity contains the base data for all entities.
@@ -96,16 +112,28 @@ type BaseEntity struct {
 type Domain struct {
 	BaseEntity
 
-	UserID             string      `json:"user_id"`
-	Hostname           string      `json:"hostname"`
-	Subdomain          string      `json:"subdomain"`
-	IdentificationCode string      `json:"identification_code"`
-	Public             bool        `json:"public"`
-	GoogleUserID       null.String `json:"google_user_id"`
-	GoogleUserEmail    null.String `json:"google_user_email"`
-	GSCDomain          null.String `json:"gsc_domain"`
-	NewOwner           null.Int64  `json:"new_owner"`
-	Timezone           null.String `json:"timezone"`
+	UserID                string      `json:"user_id"`
+	OrganizationID        string      `json:"organization_id"`
+	Hostname              string      `json:"hostname"`
+	Subdomain             string      `json:"subdomain"`
+	IdentificationCode    string      `json:"identification_code"`
+	Public                bool        `json:"public"`
+	GoogleUserID          null.String `json:"google_user_id"`
+	GoogleUserEmail       null.String `json:"google_user_email"`
+	GSCDomain             null.String `json:"gsc_domain"`
+	NewOwner              null.Int64  `json:"new_owner"`
+	Timezone              null.String `json:"timezone"`
+	GroupByTitle          bool        `json:"group_by_title"`
+	ActiveVisitorsSeconds null.Int64  `json:"active_visitors_seconds"`
+	DisableScripts        bool        `json:"disable_scripts"`
+	StatisticsStart       null.Time   `json:"statistics_start"`
+	ImportedStatistics    bool        `json:"imported_statistics"`
+	ThemeID               string      `json:"theme_id"`
+	Theme                 KeyValue    `json:"theme"`
+	CustomDomain          null.String `json:"custom_domain"`
+	UserRole              string      `json:"user_role"`
+	Settings              KeyValue    `json:"settings"`
+	ThemeSettings         KeyValue    `json:"theme_settings"`
 }
 
 // TimeSpentStats is the time spent on the website or specific pages.
@@ -157,24 +185,30 @@ type UTMTermStats struct {
 
 // TotalVisitorStats is the result type for total visitor statistics.
 type TotalVisitorStats struct {
-	Visitors   int     `json:"visitors"`
-	Views      int     `json:"views"`
-	Sessions   int     `json:"sessions"`
-	Bounces    int     `json:"bounces"`
-	BounceRate float64 `json:"bounce_rate"`
+	Visitors          int     `json:"visitors"`
+	Views             int     `json:"views"`
+	Sessions          int     `json:"sessions"`
+	Bounces           int     `json:"bounces"`
+	BounceRate        float64 `json:"bounce_rate"`
+	CR                float64 `json:"cr"`
+	CustomMetricAvg   float64 `json:"custom_metric_avg"`
+	CustomMetricTotal float64 `json:"custom_metric_total"`
 }
 
 // VisitorStats is the result type for visitor statistics.
 type VisitorStats struct {
-	Day        null.Time `json:"day"`
-	Week       null.Time `json:"week"`
-	Month      null.Time `json:"month"`
-	Year       null.Time `json:"year"`
-	Visitors   int       `json:"visitors"`
-	Views      int       `json:"views"`
-	Sessions   int       `json:"sessions"`
-	Bounces    int       `json:"bounces"`
-	BounceRate float64   `json:"bounce_rate"`
+	Day               null.Time `json:"day"`
+	Week              null.Time `json:"week"`
+	Month             null.Time `json:"month"`
+	Year              null.Time `json:"year"`
+	Visitors          int       `json:"visitors"`
+	Views             int       `json:"views"`
+	Sessions          int       `json:"sessions"`
+	Bounces           int       `json:"bounces"`
+	BounceRate        float64   `json:"bounce_rate"`
+	CR                float64   `json:"cr"`
+	CustomMetricAvg   float64   `json:"custom_metric_avg"`
+	CustomMetricTotal float64   `json:"custom_metric_total"`
 }
 
 // PageStats is the result type for page statistics.
@@ -266,11 +300,14 @@ type ConversionGoalStats struct {
 
 // Growth represents the visitors, views, sessions, bounces, and average session duration growth between two time periods.
 type Growth struct {
-	VisitorsGrowth  float64 `json:"visitors_growth"`
-	ViewsGrowth     float64 `json:"views_growth"`
-	SessionsGrowth  float64 `json:"sessions_growth"`
-	BouncesGrowth   float64 `json:"bounces_growth"`
-	TimeSpentGrowth float64 `json:"time_spent_growth"`
+	VisitorsGrowth          float64 `json:"visitors_growth"`
+	ViewsGrowth             float64 `json:"views_growth"`
+	SessionsGrowth          float64 `json:"sessions_growth"`
+	BouncesGrowth           float64 `json:"bounces_growth"`
+	TimeSpentGrowth         float64 `json:"time_spent_growth"`
+	CRGrowth                float64 `json:"cr_growth"`
+	CustomMetricAvgGrowth   float64 `json:"custom_metric_avg_growth"`
+	CustomMetricTotalGrowth float64 `json:"custom_metric_total_growth"`
 }
 
 // ActiveVisitorStats is the result type for active visitor statistics.
@@ -288,12 +325,15 @@ type ActiveVisitorsData struct {
 
 // VisitorHourStats is the result type for visitor statistics grouped by time of day.
 type VisitorHourStats struct {
-	Hour       int     `json:"hour"`
-	Visitors   int     `json:"visitors"`
-	Views      int     `json:"views"`
-	Sessions   int     `json:"sessions"`
-	Bounces    int     `json:"bounces"`
-	BounceRate float64 `json:"bounce_rate"`
+	Hour              int     `json:"hour"`
+	Visitors          int     `json:"visitors"`
+	Views             int     `json:"views"`
+	Sessions          int     `json:"sessions"`
+	Bounces           int     `json:"bounces"`
+	BounceRate        float64 `json:"bounce_rate"`
+	CR                float64 `json:"cr"`
+	CustomMetricAvg   float64 `json:"custom_metric_avg"`
+	CustomMetricTotal float64 `json:"custom_metric_total"`
 }
 
 // LanguageStats is the result type for language statistics.

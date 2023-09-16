@@ -777,6 +777,8 @@ func (client *Client) getStatsRequestURL(endpoint string, filter *Filter) string
 	v.Set("id", filter.DomainID)
 	v.Set("from", filter.From.Format("2006-01-02"))
 	v.Set("to", filter.To.Format("2006-01-02"))
+	v.Set("scale", string(filter.Scale))
+	v.Set("tz", filter.Timezone)
 	v.Set("path", filter.Path)
 	v.Set("entry_path", filter.EntryPath)
 	v.Set("exit_path", filter.ExitPath)
@@ -797,7 +799,21 @@ func (client *Client) getStatsRequestURL(endpoint string, filter *Filter) string
 	v.Set("utm_campaign", filter.UTMCampaign)
 	v.Set("utm_content", filter.UTMContent)
 	v.Set("utm_term", filter.UTMTerm)
+	v.Set("custom_metric_key", filter.CustomMetricKey)
+	v.Set("custom_metric_type", string(filter.CustomMetricType))
+	v.Set("offset", strconv.Itoa(filter.Offset))
 	v.Set("limit", strconv.Itoa(filter.Limit))
+	v.Set("sort", filter.Sort)
+	v.Set("direction", filter.Direction)
+	v.Set("search", filter.Search)
+
+	if filter.Start > 0 {
+		v.Set("start", strconv.Itoa(filter.Start))
+	}
+
+	for key, value := range filter.EventMeta {
+		v.Set(fmt.Sprintf("meta_%s", key), value)
+	}
 
 	if filter.IncludeAvgTimeOnPage {
 		v.Set("include_avg_time_on_page", "true")
