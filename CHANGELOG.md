@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.2.0
+
+This update contains breaking changes!
+
+* added tags to page views and filter
+* added multi-parameter filters
+* added reading tag statistics
+
 ## 2.1.0
 
 * added new conversion rate and custom metric fields
