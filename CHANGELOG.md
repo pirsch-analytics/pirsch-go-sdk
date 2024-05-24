@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.0
+
+* added regional statistics
+* removed DNT
+* updated dependencies
+
 ## 2.2.0
 
 This update contains breaking changes!
