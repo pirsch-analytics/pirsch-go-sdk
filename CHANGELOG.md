@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.1
+
+* added missing event metadata field
+
 ## 2.3.0
 
 * added regional statistics

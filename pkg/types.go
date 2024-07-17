@@ -280,6 +280,7 @@ type EventStats struct {
 	Name                   string   `json:"name"`
 	Visitors               int      `json:"visitors"`
 	Views                  int      `json:"views"`
+	Count                  int      `json:"count"`
 	CR                     float64  `json:"cr"`
 	AverageDurationSeconds int      `json:"average_duration_seconds"`
 	MetaKeys               []string `json:"meta_keys"`
