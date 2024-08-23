@@ -445,3 +445,39 @@ type Keyword struct {
 	CTR         float64  `json:"ctr"`
 	Position    float64  `json:"position"`
 }
+
+// Funnel is the definition of a funnel.
+type Funnel struct {
+	BaseEntity
+
+	DomainID string       `json:"domain_id"`
+	Name     string       `json:"name"`
+	Steps    []FunnelStep `json:"steps"`
+}
+
+// FunnelStep is the definition of a funnel step.
+type FunnelStep struct {
+	BaseEntity
+
+	FunnelID string `json:"funnel_id"`
+	Name     string `json:"name"`
+	Step     int    `json:"step"`
+	Filter   Filter `json:"filter"`
+}
+
+// FunnelStepData is the result type for a funnel step.
+type FunnelStepData struct {
+	Step                     int     `json:"step"`
+	Visitors                 int     `json:"visitors"`
+	RelativeVisitors         float64 `json:"relative_visitors"`
+	PreviousVisitors         int     `json:"previous_visitors"`
+	RelativePreviousVisitors float64 `json:"relative_previous_visitors"`
+	Dropped                  int     `json:"dropped"`
+	DropOff                  float64 `json:"drop_off"`
+}
+
+// FunnelData is the response type for the funnel definition and statistics.
+type FunnelData struct {
+	Definition *Funnel          `json:"definition"`
+	Data       []FunnelStepData `json:"data"`
+}

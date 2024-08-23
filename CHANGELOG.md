@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.4.0
+
+* added funnel endpoints
+* fixed missing regions parameter for filter
+
 ## 2.3.1
 
 * added missing event metadata field

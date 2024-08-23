@@ -33,12 +33,27 @@ func TestNewClient(t *testing.T) {
 	baseURL := os.Getenv("PIRSCH_BASE_URL")
 
 	if clientID != "" && clientSecret != "" {
+		t.Logf("Using base URL: %s", baseURL)
 		client := NewClient(clientID, clientSecret, &ClientConfig{
 			BaseURL: baseURL,
 		})
 		d, err := client.Domain()
 		assert.NoError(t, err)
 		assert.NotNil(t, d)
+		funnels, err := client.ListFunnel(d.ID)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, funnels)
+
+		for _, funnel := range funnels {
+			f, err := client.Funnel(funnel.ID, &Filter{
+				DomainID: d.ID,
+				From:     time.Now().Add(-time.Hour * 24 * 30),
+				To:       time.Now(),
+			})
+			assert.NoError(t, err)
+			assert.NotEmpty(t, f.Definition.ID)
+			assert.NotEmpty(t, f.Data)
+		}
 	}
 }
 
