@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.4.1
+
+* updated dependencies
+
 ## 2.4.0
 
 * added funnel endpoints

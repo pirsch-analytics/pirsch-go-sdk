@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/emvi/null v1.3.1
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.11.1
 )
 
 require (
