@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.5.0
+
+* added event pages endpoint
+* fixed closing response body
+
 ## 2.4.1
 
 * updated dependencies
