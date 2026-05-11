@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.6.1
+
+* added missing channel filter field
+
 ## 2.6.0
 
 * added channel endpoint

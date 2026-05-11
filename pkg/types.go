@@ -94,6 +94,7 @@ type Filter struct {
 	UTMCampaign          []string          `json:"utm_campaign,omitempty"`
 	UTMContent           []string          `json:"utm_content,omitempty"`
 	UTMTerm              []string          `json:"utm_term,omitempty"`
+	Channel              []string          `json:"channel,omitempty"`
 	Tag                  []string          `json:"tag"`
 	Tags                 map[string]string `json:"-"`
 	CustomMetricKey      string            `json:"custom_metric_key,omitempty"`

@@ -883,6 +883,7 @@ func (client *Client) getStatsRequestURL(endpoint string, filter *Filter) string
 	client.setURLParams(v, "utm_campaign", filter.UTMCampaign)
 	client.setURLParams(v, "utm_content", filter.UTMContent)
 	client.setURLParams(v, "utm_term", filter.UTMTerm)
+	client.setURLParams(v, "channel", filter.Channel)
 	v.Add("custom_metric_key", filter.CustomMetricKey)
 	v.Add("custom_metric_type", string(filter.CustomMetricType))
 	v.Add("offset", strconv.Itoa(filter.Offset))
