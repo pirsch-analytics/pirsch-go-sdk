@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.6.0
+
+* added channel endpoint
+* updated dependencies
+
 ## 2.5.0
 
 * added event pages endpoint

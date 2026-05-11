@@ -47,6 +47,7 @@ const (
 	timeOfDayEndpoint       = "/api/v1/statistics/hours"
 	languageEndpoint        = "/api/v1/statistics/language"
 	referrerEndpoint        = "/api/v1/statistics/referrer"
+	channelEndpoint         = "/api/v1/statistics/channel"
 	osEndpoint              = "/api/v1/statistics/os"
 	osVersionEndpoint       = "/api/v1/statistics/os/version"
 	browserEndpoint         = "/api/v1/statistics/browser"
@@ -458,6 +459,17 @@ func (client *Client) Referrer(filter *Filter) ([]ReferrerStats, error) {
 	stats := make([]ReferrerStats, 0)
 
 	if err := client.performGet(client.getStatsRequestURL(referrerEndpoint, filter), client.requestRetries, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// Channel returns channel statistics.
+func (client *Client) Channel(filter *Filter) ([]ChannelStats, error) {
+	stats := make([]ChannelStats, 0)
+
+	if err := client.performGet(client.getStatsRequestURL(channelEndpoint, filter), client.requestRetries, &stats); err != nil {
 		return nil, err
 	}
 
